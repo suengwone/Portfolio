@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 데이터 생성 클라이언트 성능 최적화</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: white;
+            font-size: 11pt;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            box-sizing: border-box;
+        }
+        
+        /* 모바일 반응형 스타일 */
+        @media screen and (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+            
+            .container {
+                padding: 15px;
+                max-width: 100%;
+            }
+            
+            h1 {
+                font-size: 22px;
+                line-height: 1.3;
+            }
+            
+            h2 {
+                font-size: 18px;
+                margin-top: 25px;
+            }
+            
+            h3 {
+                font-size: 16px;
+            }
+            
+            h4 {
+                font-size: 14px;
+            }
+            
+            .subtitle {
+                font-size: 12px;
+            }
+            
+            .tech-tags {
+                gap: 8px;
+            }
+            
+            .tech-tag {
+                padding: 4px 10px;
+                font-size: 11px;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+            
+            .code-block {
+                padding: 15px;
+                font-size: 11px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .highlight-box {
+                padding: 15px;
+            }
+            
+            .key-points {
+                padding: 15px;
+            }
+            
+            .process-flow {
+                padding: 12px 15px;
+            }
+            
+            .result-card {
+                padding: 20px;
+            }
+            
+            /* 그리드 레이아웃 모바일 대응 */
+            div[style*="grid-template-columns"] {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+            
+            /* 동영상 컨테이너 모바일 대응 */
+            div[style*="padding-bottom: 56.25%"] {
+                margin: 10px 0;
+            }
+        }
+        
+        @media screen and (max-width: 480px) {
+            body {
+                font-size: 13px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            h2 {
+                font-size: 16px;
+            }
+            
+            h3 {
+                font-size: 14px;
+            }
+            
+            .code-block {
+                font-size: 10px;
+                padding: 10px;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            .tech-tags {
+                flex-wrap: wrap;
+            }
+            
+            .process-flow li {
+                padding-left: 30px;
+            }
+            
+            .process-flow li::before {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+        }
+        
+        /* Header Styles */
+        .header {
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 24pt;
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 11pt;
+            font-weight: 400;
+        }
+        
+        /* Section Styles */
+        h2 {
+            font-size: 16pt;
+            color: #2980b9;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0e0e0;
+            page-break-after: avoid;
+        }
+        
+        h3 {
+            font-size: 13pt;
+            color: #34495e;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            page-break-after: avoid;
+        }
+        
+        h4 {
+            font-size: 11pt;
+            color: #5a6c7d;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        /* Content Styles */
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 25px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .highlight-box strong {
+            color: #ffd700;
+        }
+        
+        /* Code Blocks - 완전히 새로운 스타일 */
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 10pt;
+            line-height: 1.5;
+            overflow-x: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
+            tab-size: 2;
+            -moz-tab-size: 2;
+            -webkit-tab-size: 2;
+        }
+        
+        .code-block pre {
+            margin: 0;
+            padding: 0;
+            tab-size: 2;
+            -moz-tab-size: 2;
+            -webkit-tab-size: 2;
+        }
+        
+        /* Process Flow */
+        .process-flow {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .process-flow ol {
+            counter-reset: step;
+            list-style: none;
+        }
+        
+        .process-flow li {
+            counter-increment: step;
+            margin-bottom: 10px;
+            position: relative;
+            padding-left: 35px;
+        }
+        
+        .process-flow li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #3498db;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+        
+        /* Performance Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            page-break-inside: avoid;
+        }
+        
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 10pt;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 10pt;
+        }
+        
+        tbody tr:hover {
+            background: #f5f6fa;
+        }
+        
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .improvement {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        /* Key Points */
+        .key-points {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 25px 0;
+        }
+        
+        .key-points ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .key-points li {
+            padding-left: 30px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .key-points li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 14pt;
+        }
+        
+        /* Result Card */
+        .result-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .result-card h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        
+        /* Tech Stack Tags */
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .tech-tag {
+            background: #3498db;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 9pt;
+            font-weight: 500;
+        }
+        
+        /* Page Break Control */
+        .page-break {
+            page-break-after: always;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            .container {
+                padding: 0;
+            }
+            
+            .code-block {
+                break-inside: avoid;
+            }
+        }
+    </style>
+    <script>
+        // 페이지 로드 시 코드 블록 들여쓰기 조정
+        window.addEventListener('DOMContentLoaded', function() {
+            const codeBlocks = document.querySelectorAll('.code-block pre');
+            codeBlocks.forEach(block => {
+                // HTML 내용을 가져와서 각 줄의 들여쓰기를 절반으로 줄임
+                let html = block.innerHTML;
+                const lines = html.split('\n');
+                const processedLines = lines.map(line => {
+                    // 줄 시작의 공백을 찾아서 절반으로 줄임
+                    const leadingSpaces = line.match(/^(&nbsp;| )*/)?.[0] || '';
+                    const spaceCount = leadingSpaces.replace(/&nbsp;/g, ' ').length;
+                    const newSpaceCount = Math.floor(spaceCount / 2);
+                    const newSpaces = ' '.repeat(newSpaceCount);
+                    return newSpaces + line.substring(leadingSpaces.length);
+                });
+                block.innerHTML = processedLines.join('\n');
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI 데이터 생성 클라이언트 성능 최적화</h1>
+            <div class="subtitle">Unity HDRP 환경에서의 대규모 객체 세그멘테이션 처리 최적화</div>
+        </div>
+        
+        <h2>📋 프로젝트 개요</h2>
+        <div class="highlight-box">
+            <p><strong>목적:</strong> 영상 분석 AI용 객체 탐지 대규모 데이터셋 생성</p>
+            <p><strong>문제:</strong> 기존 0.5초의 객체 처리 속도로는 대규모 데이터셋 구축 불가</p>
+            <p><strong>목표:</strong> 가상 데이터 생성의 핵심 장점인 "단시간 대규모 데이터 구축" 실현</p>
+        </div>
+        
+        <div class="tech-tags">
+            <span class="tech-tag">Unity HDRP</span>
+            <span class="tech-tag">C#</span>
+            <span class="tech-tag">HLSL</span>
+            <span class="tech-tag">OpenCV</span>
+            <span class="tech-tag">Shader Programming</span>
+        </div>
+
+        <h2>🔍 병목점 분석</h2>
+        
+        <h3>Unity Profiler 분석 결과</h3>
+        <div class="key-points">
+            <ul>
+                <li><strong>GPU-CPU 간 데이터 전송(ReadPixels) 반복 호출</strong>이 주요 병목</li>
+                <li>OpenCV 이미지 처리 과정에서 지연 발생</li>
+                <li>객체 수에 비례한 선형적 처리 시간 증가</li>
+            </ul>
+        </div>
+
+        <h3>기존 방식의 비효율성</h3>
+        <div class="process-flow">
+            <h4>객체별 개별 처리 플로우</h4>
+            <ol>
+                <li>특정 객체만 흰색으로 변경, 나머지는 검은색</li>
+                <li>화면 캡처 (ReadPixels 호출)</li>
+                <li>OpenCV로 이미지 처리하여 객체 데이터 추출</li>
+                <li>하나의 이미지 (프로세스)에 있는 객체의 수만큼 반복</li>
+            </ol>
+            <p style="margin-top: 15px;">
+                <strong>처리 시간:</strong> 객체 수 × 0.5초 (100개 = 50초)<br>
+                <strong>메모리:</strong> 객체 수만큼 텍스처 생성으로 가변적 증가
+            </p>
+        </div>
+
+        <h2>💡 최적화 솔루션</h2>
+        
+        <h3>핵심 아이디어: 다중 객체 동시 처리</h3>
+        <div class="process-flow" style="background: #e8f5e9; border-left-color: #27ae60;">
+            <h4>개선된 방식</h4>
+            <ol>
+                <li>모든 객체에 고유 색상 매핑 (빨강, 파랑, 초록 등)</li>
+                <li>1회 캡처로 모든 객체 정보 획득</li>
+                <li>색상별로 OpenCV 이미지 처리 일괄 수행</li>
+            </ol>
+            <p style="margin-top: 15px;">
+                <strong>처리 시간:</strong> 객체 수와 무관하게 일정 (100개 = 5초)<br>
+                <strong>메모리:</strong> 1회 캡처로 텍스처 생성 횟수 고정
+            </p>
+        </div>
+
+        <h3>기술적 구현</h3>
+        
+        <h4>1. 고유 색상 생성 시스템</h4>
+        <div class="code-block">
+<pre style="color: #d4d4d4; margin: 0;"><span style="color: #569cd6;">public</span> <span style="color: #569cd6;">static</span> <span style="color: #569cd6;">class</span> <span style="color: #4ec9b0;">RandomUniqueColorGenerator</span>
+{
+    <span style="color: #569cd6;">private</span> <span style="color: #569cd6;">static</span> <span style="color: #4ec9b0;">HashSet</span>&lt;<span style="color: #4ec9b0;">Color32</span>&gt; <span style="color: #9cdcfe;">UniqueColorSet</span> = <span style="color: #569cd6;">new</span> <span style="color: #4ec9b0;">HashSet</span>&lt;<span style="color: #4ec9b0;">Color32</span>&gt;();
+
+    <span style="color: #569cd6;">public</span> <span style="color: #569cd6;">static</span> <span style="color: #4ec9b0;">Color</span> <span style="color: #dcdcaa;">GetUniqueColor</span>()
+    {
+        <span style="color: #4ec9b0;">Color32</span> <span style="color: #9cdcfe;">rgb</span>;
+        
+        <span style="color: #c586c0;">do</span> 
+        {
+            <span style="color: #9cdcfe;">rgb</span> = <span style="color: #569cd6;">new</span> <span style="color: #4ec9b0;">Color32</span>(
+                (<span style="color: #569cd6;">byte</span>)<span style="color: #4ec9b0;">Random</span>.<span style="color: #dcdcaa;">Range</span>(<span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">255</span>), 
+                (<span style="color: #569cd6;">byte</span>)<span style="color: #4ec9b0;">Random</span>.<span style="color: #dcdcaa;">Range</span>(<span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">255</span>), 
+                (<span style="color: #569cd6;">byte</span>)<span style="color: #4ec9b0;">Random</span>.<span style="color: #dcdcaa;">Range</span>(<span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">255</span>), 
+                <span style="color: #b5cea8;">255</span>
+            );
+        } 
+        <span style="color: #c586c0;">while</span> (!<span style="color: #9cdcfe;">UniqueColorSet</span>.<span style="color: #dcdcaa;">Add</span>(<span style="color: #9cdcfe;">rgb</span>)); <span style="color: #6a9955;">// 중복 색상 방지</span>
+        
+        <span style="color: #c586c0;">return</span> <span style="color: #9cdcfe;">rgb</span>;
+    }
+}</pre>
+        </div>
+        <p><strong>핵심 아이디어:</strong> HashSet으로 중복 방지하여 각 객체마다 고유한 색상 보장</p>
+        
+        <!-- 영상 데모 섹션 1 -->
+        <div style="background: #f8f9fa; border: 2px solid #3498db; border-radius: 10px; padding: 20px; margin: 20px 0;">
+            <h5 style="color: #2c3e50; margin-top: 0; margin-bottom: 15px; text-align: center;">
+                🎥 색상 포맷 이슈 발견 및 해결
+            </h5>
+            
+            <!-- Google Drive 영상 임베드 -->
+            <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <iframe src="https://drive.google.com/file/d/1CMYUJUadALoeHvZy7MByVHezknzkssKW/preview" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px;"
+                        allow="autoplay; fullscreen"
+                        allowfullscreen>
+                </iframe>
+            </div>
+            
+            <p style="margin-top: 15px; margin-bottom: 10px; color: #5a6c7d; text-align: center;">
+                <strong>테스트 내용:</strong> HSV와 RGB 포맷 변환 시 색상 중복 문제 검증
+            </p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <div style="background: #fee5e5; border-radius: 6px; padding: 12px;">
+                    <p style="margin: 0; font-size: 9pt; color: #c0392b;">
+                        <strong>❌ 문제 발견</strong><br>
+                        HSV → RGB 변환 시 서로 다른 HSV 값이 동일한 RGB로 매핑되는 현상 확인
+                    </p>
+                </div>
+                <div style="background: #e8f5e9; border-radius: 6px; padding: 12px;">
+                    <p style="margin: 0; font-size: 9pt; color: #27ae60;">
+                        <strong>✅ 해결 방안</strong><br>
+                        RGB32 포맷으로 통일하여 색상 중복 완전 방지
+                    </p>
+                </div>
+            </div>
+            
+            <div style="background: linear-gradient(90deg, #e74c3c 0%, #3498db 100%); 
+                        color: white; 
+                        border-radius: 6px; 
+                        padding: 12px; 
+                        margin-top: 15px;">
+                <p style="margin: 0; font-size: 10pt; text-align: center;">
+                    💡 <strong>핵심 개선:</strong> HSV 포맷 제거, RGB32 단일 포맷 채택으로 색상 고유성 100% 보장
+                </p>
+            </div>
+            
+            <!-- 대체 링크 (영상이 로드되지 않을 경우) -->
+            <p style="margin-top: 10px; font-size: 9pt; color: #95a5a6; text-align: center;">
+                영상이 보이지 않는 경우: 
+                <a href="https://drive.google.com/file/d/1CMYUJUadALoeHvZy7MByVHezknzkssKW/view?usp=sharing" 
+                   target="_blank"
+                   style="color: #3498db;">
+                    새 창에서 열기
+                </a>
+            </p>
+        </div>
+        
+        <!-- OpenCV 색상 추출 테스트 영상 -->
+        <div style="background: #fff3e0; border: 2px solid #f39c12; border-radius: 10px; padding: 20px; margin: 20px 0;">
+            <h5 style="color: #2c3e50; margin-top: 0; margin-bottom: 15px; text-align: center;">
+                🔍 OpenCV 색상 추출 검증 테스트
+            </h5>
+            
+            <!-- Google Drive 영상 임베드 -->
+            <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <iframe src="https://drive.google.com/file/d/1apSA31ufXWslL0ibtvOmlU7kne242YH0/preview" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px;"
+                        allow="autoplay; fullscreen"
+                        allowfullscreen>
+                </iframe>
+            </div>
+            
+            <p style="margin-top: 15px; margin-bottom: 10px; color: #5a6c7d; text-align: center;">
+                <strong>테스트 내용:</strong> 다중 색상 이미지에서 특정 색상만 정확히 추출하는 OpenCV 처리 검증
+            </p>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <div style="flex: 1; background: #fef5e7; border-radius: 6px; padding: 10px;">
+                    <p style="margin: 0; font-size: 9pt; color: #e67e22;">
+                        📊 <strong>처리 과정:</strong><br>
+                        1. 전체 이미지 캡처<br>
+                        2. RGB 색상별 마스킹<br>
+                        3. 객체 영역 추출
+                    </p>
+                </div>
+                <div style="flex: 1; background: #e8f5e9; border-radius: 6px; padding: 10px;">
+                    <p style="margin: 0; font-size: 9pt; color: #27ae60;">
+                        ✅ <strong>검증 결과:</strong><br>
+                        • 색상 정확도: 100%<br>
+                        • 처리 속도: 0.1초 이내<br>
+                        • 경계선 정밀도 확인
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 대체 링크 -->
+            <p style="margin-top: 10px; font-size: 9pt; color: #95a5a6; text-align: center;">
+                영상이 보이지 않는 경우: 
+                <a href="https://drive.google.com/file/d/1apSA31ufXWslL0ibtvOmlU7kne242YH0/view?usp=sharing" 
+                   target="_blank"
+                   style="color: #f39c12;">
+                    새 창에서 열기
+                </a>
+            </p>
+        </div>
+
+        <div class="page-break"></div>
+
+        <h4>2. 객체별 세그멘테이션 관리 시스템</h4>
+        <div class="code-block">
+<pre style="color: #d4d4d4; margin: 0;"><span style="color: #569cd6;">public</span> <span style="color: #569cd6;">class</span> <span style="color: #4ec9b0;">ObjectSegmentationProvider</span> : <span style="color: #4ec9b0;">MonoBehaviour</span>
+{
+    <span style="color: #569cd6;">public</span> <span style="color: #569cd6;">enum</span> <span style="color: #4ec9b0;">SegmentationMode</span>
+    {
+        <span style="color: #4fc1ff;">Default</span>  = <span style="color: #b5cea8;">0</span>,
+        <span style="color: #4fc1ff;">Instance</span> = <span style="color: #b5cea8;">1</span>,
+        <span style="color: #4fc1ff;">Semantic</span> = <span style="color: #b5cea8;">2</span>, 
+        <span style="color: #4fc1ff;">Parts</span>    = <span style="color: #b5cea8;">3</span>,
+        <span style="color: #4fc1ff;">Panoptic</span> = <span style="color: #b5cea8;">4</span>,
+        <span style="color: #4fc1ff;">Outline</span>  = <span style="color: #b5cea8;">5</span>
+    }
+
+    <span style="color: #569cd6;">private</span> <span style="color: #4ec9b0;">Color</span> <span style="color: #9cdcfe;">instanceColor</span>;
+    <span style="color: #569cd6;">private</span> <span style="color: #4ec9b0;">List</span>&lt;(<span style="color: #4ec9b0;">Color</span> color, <span style="color: #569cd6;">string</span> name)&gt; <span style="color: #9cdcfe;">partsColors</span>;
+    <span style="color: #569cd6;">private</span> <span style="color: #4ec9b0;">List</span>&lt;<span style="color: #4ec9b0;">RendererSet</span>&gt; <span style="color: #9cdcfe;">rendererSets</span> = <span style="color: #569cd6;">new</span>();
+
+    <span style="color: #569cd6;">public</span> <span style="color: #569cd6;">void</span> <span style="color: #dcdcaa;">SetupFoundations</span>(<span style="color: #569cd6;">bool</span> <span style="color: #9cdcfe;">isMap</span>, <span style="color: #4ec9b0;">Color</span> <span style="color: #9cdcfe;">classColor</span> = <span style="color: #569cd6;">default</span>)
+    {
+        <span style="color: #9cdcfe;">segmentationShader</span> = <span style="color: #4ec9b0;">Shader</span>.<span style="color: #dcdcaa;">Find</span>(<span style="color: #ce9178;">"Custom/Segmentation"</span>);
+        
+        <span style="color: #c586c0;">if</span> (!<span style="color: #9cdcfe;">isMap</span>) 
+        {
+            <span style="color: #9cdcfe;">instanceColor</span> = <span style="color: #4ec9b0;">RandomUniqueColorGenerator</span>.<span style="color: #dcdcaa;">GetUniqueColor</span>();
+            <span style="color: #9cdcfe;">partsColors</span> = <span style="color: #569cd6;">new</span> <span style="color: #4ec9b0;">List</span>&lt;(<span style="color: #4ec9b0;">Color</span> color, <span style="color: #569cd6;">string</span> name)&gt;();
+        }
+        
+        <span style="color: #dcdcaa;">CachingMaterials</span>(<span style="color: #9cdcfe;">classColor</span>, <span style="color: #9cdcfe;">isMap</span>);
+    }
+
+    <span style="color: #569cd6;">private</span> <span style="color: #569cd6;">void</span> <span style="color: #dcdcaa;">SetOptionSegmentationMaterial</span>(<span style="color: #569cd6;">ref</span> <span style="color: #4ec9b0;">Material</span> <span style="color: #9cdcfe;">segMat</span>, <span style="color: #569cd6;">string</span> <span style="color: #9cdcfe;">objectName</span>)
+    {
+        <span style="color: #569cd6;">var</span> <span style="color: #9cdcfe;">randomColor</span> = <span style="color: #4ec9b0;">RandomUniqueColorGenerator</span>.<span style="color: #dcdcaa;">GetUniqueColor</span>();
+        <span style="color: #9cdcfe;">partsColors</span>.<span style="color: #dcdcaa;">Add</span>((<span style="color: #9cdcfe;">randomColor</span>, <span style="color: #9cdcfe;">objectName</span>)); <span style="color: #6a9955;">// 부위별 색상 매핑</span>
+        <span style="color: #9cdcfe;">segMat</span>.<span style="color: #dcdcaa;">SetColor</span>(<span style="color: #ce9178;">"_PartsColor"</span>, <span style="color: #9cdcfe;">randomColor</span>);
+    }
+
+    <span style="color: #569cd6;">public</span> <span style="color: #569cd6;">void</span> <span style="color: #dcdcaa;">ExecuteSegmentationMode</span>(<span style="color: #4ec9b0;">SegmentationMode</span> <span style="color: #9cdcfe;">mode</span>)
+    {
+        <span style="color: #9cdcfe;">segmentationMode</span> = <span style="color: #9cdcfe;">mode</span>;
+        
+        <span style="color: #9cdcfe;">rendererSets</span>.<span style="color: #dcdcaa;">ForEach</span>(<span style="color: #9cdcfe;">rendererSet</span> => 
+        {
+            <span style="color: #9cdcfe;">rendererSet</span>.<span style="color: #dcdcaa;">SetTargetSegmentationMode</span>(<span style="color: #9cdcfe;">segmentationMode</span>);
+        });
+    }
+}</pre>
+        </div>
+        <p><strong>핵심 최적화:</strong> 런타임에 셰이더 모드만 변경하여 머티리얼 교체 없이 색상 전환</p>
+
+        <h4>3. 커스텀 Segmentation Shader</h4>
+        <div class="code-block">
+<pre style="color: #d4d4d4; margin: 0;"><span style="color: #4ec9b0;">Shader</span> <span style="color: #ce9178;">"Custom/Segmentation"</span>
+{
+    <span style="color: #c586c0;">Properties</span>
+    {
+        <span style="color: #6a9955;">// Enum을 통한 모드 선택 (머티리얼 교체 없이 전환)</span>
+        [<span style="color: #4ec9b0;">Enum</span>(<span style="color: #4fc1ff;">Default</span>, <span style="color: #b5cea8;">0</span>, <span style="color: #4fc1ff;">Instance</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #4fc1ff;">Semantic</span>, <span style="color: #b5cea8;">2</span>, <span style="color: #4fc1ff;">Parts</span>, <span style="color: #b5cea8;">3</span>, <span style="color: #4fc1ff;">Panoptic</span>, <span style="color: #b5cea8;">4</span>, <span style="color: #4fc1ff;">Outline</span>, <span style="color: #b5cea8;">5</span>)] 
+        _SegmentationMode(<span style="color: #ce9178;">"Segmentation Mode"</span>, <span style="color: #4ec9b0;">int</span>) = <span style="color: #b5cea8;">0</span>
+        
+        [<span style="color: #4ec9b0;">MainTexture</span>] _MainTex(<span style="color: #ce9178;">"Main Texture"</span>, <span style="color: #4ec9b0;">2D</span>) = <span style="color: #ce9178;">"white"</span> {}
+        
+        <span style="color: #6a9955;">// 각 모드별 색상 값</span>
+        _DefaultColor(<span style="color: #ce9178;">"Default Color"</span>, <span style="color: #4ec9b0;">Color</span>) = (<span style="color: #b5cea8;">0</span>, <span style="color: #b5cea8;">0</span>, <span style="color: #b5cea8;">0</span>, <span style="color: #b5cea8;">1</span>)
+        _InstanceColor(<span style="color: #ce9178;">"Instance Color"</span>, <span style="color: #4ec9b0;">Color</span>) = (<span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>)
+        _SemanticColor(<span style="color: #ce9178;">"Semantic Color"</span>, <span style="color: #4ec9b0;">Color</span>) = (<span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>)
+        _PartsColor(<span style="color: #ce9178;">"Parts Color"</span>, <span style="color: #4ec9b0;">Color</span>) = (<span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>)
+        _PanopticColor(<span style="color: #ce9178;">"Panoptic Color"</span>, <span style="color: #4ec9b0;">Color</span>) = (<span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>, <span style="color: #b5cea8;">1</span>)
+        _OutlineColor(<span style="color: #ce9178;">"Outline Color"</span>, <span style="color: #4ec9b0;">Color</span>) = (<span style="color: #b5cea8;">0.8</span>, <span style="color: #b5cea8;">0.0</span>, <span style="color: #b5cea8;">0.0</span>, <span style="color: #b5cea8;">1</span>)
+    }
+
+    <span style="color: #c586c0;">SubShader</span>
+    {
+        <span style="color: #c586c0;">Pass</span>
+        {
+            <span style="color: #c586c0;">HLSLPROGRAM</span>
+            <span style="color: #569cd6;">#pragma</span> vertex <span style="color: #dcdcaa;">vert</span>
+            <span style="color: #569cd6;">#pragma</span> fragment <span style="color: #dcdcaa;">frag</span>
+            
+            <span style="color: #569cd6;">#include</span> <span style="color: #ce9178;">"Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"</span>
+
+            <span style="color: #6a9955;">// GPU 메모리 최적화를 위한 상수 버퍼</span>
+            <span style="color: #c586c0;">CBUFFER_START</span>(<span style="color: #4ec9b0;">UnityPerMaterial</span>)
+                <span style="color: #4ec9b0;">int</span> _SegmentationMode;
+                <span style="color: #4ec9b0;">float4</span> _DefaultColor;
+                <span style="color: #4ec9b0;">float4</span> _InstanceColor;
+                <span style="color: #4ec9b0;">float4</span> _SemanticColor;
+                <span style="color: #4ec9b0;">float4</span> _PartsColor;
+                <span style="color: #4ec9b0;">float4</span> _PanopticColor;
+                <span style="color: #4ec9b0;">float4</span> _OutlineColor;
+                <span style="color: #4ec9b0;">float</span> _AlphaThreshold;
+            <span style="color: #c586c0;">CBUFFER_END</span>
+
+            <span style="color: #c586c0;">TEXTURE2D</span>(_MainTex);
+            <span style="color: #c586c0;">SAMPLER</span>(sampler_MainTex);
+
+            <span style="color: #569cd6;">struct</span> <span style="color: #4ec9b0;">Varyings</span>
+            {
+                <span style="color: #4ec9b0;">float4</span> positionCS : <span style="color: #4ec9b0;">SV_POSITION</span>;
+                <span style="color: #4ec9b0;">float2</span> uv : <span style="color: #4ec9b0;">TEXCOORD0</span>;
+                <span style="color: #4ec9b0;">float3</span> normalWS : <span style="color: #4ec9b0;">TEXCOORD1</span>;
+                <span style="color: #4ec9b0;">float3</span> viewDirWS : <span style="color: #4ec9b0;">TEXCOORD2</span>;
+            };
+
+            <span style="color: #6a9955;">// Fragment Shader - 조건 분기 처리</span>
+            <span style="color: #4ec9b0;">float4</span> <span style="color: #dcdcaa;">frag</span>(<span style="color: #4ec9b0;">Varyings</span> <span style="color: #9cdcfe;">input</span>) : <span style="color: #4ec9b0;">SV_Target</span>
+            {
+                <span style="color: #4ec9b0;">float4</span> <span style="color: #9cdcfe;">texColor</span> = <span style="color: #dcdcaa;">SAMPLE_TEXTURE2D</span>(_MainTex, sampler_MainTex, <span style="color: #9cdcfe;">input</span>.uv);
+                <span style="color: #dcdcaa;">clip</span>(<span style="color: #9cdcfe;">texColor</span>.a - _AlphaThreshold);
+                
+                <span style="color: #6a9955;">// Early return 패턴으로 최적화</span>
+                <span style="color: #6a9955;">// Uniform 분기: 모든 픽셀이 같은 모드를 사용하므로 효율적</span>
+                <span style="color: #c586c0;">if</span> (_SegmentationMode == <span style="color: #b5cea8;">0</span>)
+                {
+                    <span style="color: #c586c0;">return</span> _DefaultColor;
+                }
+                <span style="color: #c586c0;">else if</span> (_SegmentationMode == <span style="color: #b5cea8;">1</span>)
+                {
+                    <span style="color: #c586c0;">return</span> _InstanceColor;
+                }
+                <span style="color: #c586c0;">else if</span> (_SegmentationMode == <span style="color: #b5cea8;">2</span>)
+                {
+                    <span style="color: #c586c0;">return</span> _SemanticColor;
+                }
+                <span style="color: #c586c0;">else if</span> (_SegmentationMode == <span style="color: #b5cea8;">3</span>)
+                {
+                    <span style="color: #c586c0;">return</span> _PartsColor;
+                }
+                <span style="color: #c586c0;">else if</span> (_SegmentationMode == <span style="color: #b5cea8;">4</span>)
+                {
+                    <span style="color: #c586c0;">return</span> _PanopticColor;
+                }
+                <span style="color: #c586c0;">else if</span> (_SegmentationMode == <span style="color: #b5cea8;">5</span>)
+                {
+                    <span style="color: #6a9955;">// Outline 모드: Fresnel 효과를 if-else로 처리</span>
+                    <span style="color: #4ec9b0;">float3</span> <span style="color: #9cdcfe;">normalWS</span> = <span style="color: #dcdcaa;">normalize</span>(<span style="color: #9cdcfe;">input</span>.normalWS);
+                    <span style="color: #4ec9b0;">float3</span> <span style="color: #9cdcfe;">viewDirWS</span> = <span style="color: #dcdcaa;">normalize</span>(<span style="color: #9cdcfe;">input</span>.viewDirWS);
+                    <span style="color: #4ec9b0;">float</span> <span style="color: #9cdcfe;">fresnel</span> = <span style="color: #b5cea8;">1.0</span> - <span style="color: #dcdcaa;">saturate</span>(<span style="color: #dcdcaa;">dot</span>(<span style="color: #9cdcfe;">normalWS</span>, <span style="color: #9cdcfe;">viewDirWS</span>));
+                    
+                    <span style="color: #6a9955;">// Fresnel 임계값 기준으로 외곽선 색상 적용</span>
+                    <span style="color: #c586c0;">if</span> (<span style="color: #9cdcfe;">fresnel</span> &gt; <span style="color: #b5cea8;">0.5</span>)
+                    {
+                        <span style="color: #c586c0;">return</span> _OutlineColor;
+                    }
+                    <span style="color: #c586c0;">else</span>
+                    {
+                        <span style="color: #c586c0;">return</span> <span style="color: #9cdcfe;">texColor</span>;
+                    }
+                }
+                <span style="color: #c586c0;">else</span>
+                {
+                    <span style="color: #c586c0;">return</span> _DefaultColor; <span style="color: #6a9955;">// fallback</span>
+                }
+            }
+            <span style="color: #c586c0;">ENDHLSL</span>
+        }
+    }
+}</pre>
+        </div>
+        <!-- Shader 성능 테스트 영상 -->
+        <div style="background: #e3f2fd; border: 2px solid #2196f3; border-radius: 10px; padding: 20px; margin: 20px 0;">
+            <h5 style="color: #2c3e50; margin-top: 0; margin-bottom: 15px; text-align: center;">
+                ⚡ Shader 모드 전환 성능 테스트
+            </h5>
+            
+            <!-- Google Drive 영상 임베드 -->
+            <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <iframe src="https://drive.google.com/file/d/1sApl7goQxRJZnbnJRVzXMfDAVk5yGffD/preview" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px;"
+                        allow="autoplay; fullscreen"
+                        allowfullscreen>
+                </iframe>
+            </div>
+            
+            <p style="margin-top: 15px; margin-bottom: 10px; color: #5a6c7d; text-align: center;">
+                <strong>테스트 내용:</strong> 약 40개 객체 환경에서 실시간 셰이더 모드 전환 성능 검증
+            </p>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px;">
+                <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; text-align: center;">
+                    <p style="margin: 0; font-size: 9pt; color: #2196f3;">
+                        <strong>🎯 테스트 조건</strong><br>
+                        객체 수: 약 40개<br>
+                        모드 전환: 실시간
+                    </p>
+                </div>
+                <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; text-align: center;">
+                    <p style="margin: 0; font-size: 9pt; color: #9c27b0;">
+                        <strong>🔄 전환 가능 모드</strong><br>
+                        Default ↔ Instance ↔ Semantic<br>
+                        ↔ Parts ↔ Panoptic<br>
+                        <span style="font-size: 8pt; color: #7f8c8d;">(순서 무관 자유 전환)</span>
+                    </p>
+                </div>
+                <div style="background: #e8f5e9; border: 1px solid #4caf50; border-radius: 6px; padding: 10px; text-align: center;">
+                    <p style="margin: 0; font-size: 9pt; color: #27ae60;">
+                        <strong>✅ 성능 결과</strong><br>
+                        FPS: 40~60+ 유지<br>
+                        지연/버벅임: 없음<br>
+                        <span style="font-size: 8pt;">빠른 전환에도 안정적</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; padding: 12px; margin-top: 15px;">
+                <p style="margin: 0; font-size: 10pt; text-align: center;">
+                    💡 <strong>핵심 성과:</strong> 다수 객체의 동시 색상 변경이 즉각적으로 반영되며, 
+                    빠른 모드 전환에도 안정적인 성능 유지
+                </p>
+            </div>
+            
+            <!-- 대체 링크 -->
+            <p style="margin-top: 10px; font-size: 9pt; color: #95a5a6; text-align: center;">
+                영상이 보이지 않는 경우: 
+                <a href="https://drive.google.com/file/d/1sApl7goQxRJZnbnJRVzXMfDAVk5yGffD/view?usp=sharing" 
+                   target="_blank"
+                   style="color: #2196f3;">
+                    새 창에서 열기
+                </a>
+            </p>
+        </div>
+
+        <h2>📊 성능 개선 결과</h2>
+        
+        <div class="key-points" style="background: #f3e5f5; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #7b1fa2;">⚙️ 테스트 환경 사양</h4>
+            <ul>
+                <li>GPU: NVIDIA RTX 3070 (8GB VRAM)</li>
+                <li>CPU: Intel i7-10700K @ 3.8GHz</li>
+                <li>RAM: 32GB DDR4 3200MHz</li>
+                <li>Unity: 2022.3.8f1 LTS with HDRP 14.0.8</li>
+                <li>해상도: 1920x1080 (Full HD)</li>
+            </ul>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>지표</th>
+                    <th>기존 방식</th>
+                    <th>개선 방식</th>
+                    <th>개선율</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>객체 1개 처리 시간</td>
+                    <td>0.5초</td>
+                    <td>0.1초 이하</td>
+                    <td class="improvement">5배 향상</td>
+                </tr>
+                <tr>
+                    <td>객체 100개 처리 시간</td>
+                    <td>50초</td>
+                    <td>5초</td>
+                    <td class="improvement">10배 향상</td>
+                </tr>
+                <tr>
+                    <td>GPU-CPU 전송 횟수</td>
+                    <td>객체 수만큼</td>
+                    <td>1회 고정</td>
+                    <td class="improvement">N배 감소</td>
+                </tr>
+                <tr>
+                    <td>메모리 사용량</td>
+                    <td>가변적 증가</td>
+                    <td>일정 수준 유지</td>
+                    <td class="improvement">안정화</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>🎯 기술적 도전과 해결</h2>
+        
+        <h3>1. 처리 속도 개선을 위한 다양한 기술적 시도</h3>
+        <div class="result-card">
+            <h4>시도한 최적화 방법들:</h4>
+            <ul style="list-style-type: disc; padding-left: 25px;">
+                <li><strong>Compute Shader + Job System:</strong> 병렬 처리로 속도 개선 시도 → 데이터 정확성 문제로 포기</li>
+                <li><strong>MaterialPropertyBlock:</strong> 머티리얼 인스턴싱 없이 속성 변경 시도 → HDRP에서 제한적 지원으로 사용 불가</li>
+                <li><strong>머티리얼 인스턴싱:</strong> 동적 머티리얼 생성 → 메모리 사용량 급증 문제</li>
+            </ul>
+            
+            <h4 style="margin-top: 20px;">최종 해결책:</h4>
+            <ul style="list-style-type: disc; padding-left: 25px;">
+                <li>커스텀 Unlit Shader로 경량화된 머티리얼 생성</li>
+                <li>Enum 기반 모드 시스템으로 런타임 색상 전환</li>
+                <li>단일 셰이더에서 모든 세그멘테이션 타입 지원</li>
+            </ul>
+        </div>
+
+        <h3>2. 데이터 정확성 보장</h3>
+        <div class="process-flow">
+            <h4>검증 프로세스</h4>
+            <ol>
+                <li><strong>단위 테스트:</strong> 기능별 개별 씬 구성하여 검증</li>
+                <li><strong>통합 테스트:</strong> 실제 환경에서 전체 프로세스 검증</li>
+                <li><strong>출력물 신뢰성:</strong> OpenCV 결과값과 실제 객체 데이터 정합성 확인</li>
+            </ol>
+        </div>
+
+        <h2>🏆 핵심 기술 성과</h2>
+        
+        <!-- 최종 결과물 데모 영상 -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: 3px solid #fff; border-radius: 15px; padding: 25px; margin: 30px 0; box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);">
+            <h3 style="color: white; margin-top: 0; margin-bottom: 20px; text-align: center; font-size: 18pt;">
+                🎯 최종 결과물 - AI 데이터 생성 시스템 실행
+            </h3>
+            
+            <!-- Google Drive 영상 임베드 -->
+            <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.3);">
+                <iframe src="https://drive.google.com/file/d/1bD3SdtASuV-nDIZb9g9g8P0Wk1cGrLz_/preview" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 10px;"
+                        allow="autoplay; fullscreen"
+                        allowfullscreen>
+                </iframe>
+            </div>
+            
+            <div style="background: rgba(255,255,255,0.95); border-radius: 10px; padding: 20px; margin-top: 20px;">
+                <p style="margin-bottom: 15px; color: #2c3e50; text-align: center; font-weight: 600;">
+                    📊 시스템 실행 결과 - 전체 파이프라인 데모
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <div style="background: #f8f9fa; border-left: 4px solid #3498db; padding: 15px; border-radius: 5px;">
+                        <h4 style="margin-top: 0; color: #2980b9; font-size: 11pt;">📥 입력 프로세스</h4>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 10pt; color: #5a6c7d;">
+                            <li>3D 씬 구성 및 객체 배치</li>
+                            <li>세그멘테이션 모드 설정</li>
+                            <li>카메라 앵글 자동 조정</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; border-left: 4px solid #27ae60; padding: 15px; border-radius: 5px;">
+                        <h4 style="margin-top: 0; color: #27ae60; font-size: 11pt;">📤 출력 데이터</h4>
+                        <div style="font-size: 10pt; color: #5a6c7d;">
+                            <strong style="color: #27ae60;">이미지 데이터:</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px;">
+                                <li>RGB 원본 이미지</li>
+                                <li>Instance (객체별)</li>
+                                <li>Semantic (클래스별)</li>
+                                <li>Panoptic (Instance+Semantic)</li>
+                                <li>Bounding Box</li>
+                                <li>Depth / Normal Map</li>
+                            </ul>
+                            <strong style="color: #27ae60;">텍스트 데이터:</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px;">
+                                <li>YOLO 형식</li>
+                                <li>Pascal VOC 형식</li>
+                                <li>COCO 형식</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: linear-gradient(90deg, #e74c3c 0%, #f39c12 25%, #f1c40f 50%, #2ecc71 75%, #3498db 100%); 
+                            height: 4px; 
+                            border-radius: 2px; 
+                            margin: 20px 0;">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; text-align: center;">
+                    <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
+                                color: white; 
+                                padding: 15px; 
+                                border-radius: 10px;
+                                box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        <p style="font-size: 24pt; font-weight: bold; margin: 0;">10x</p>
+                        <p style="font-size: 10pt; margin: 5px 0 0 0;">성능 향상</p>
+                        <p style="font-size: 8pt; margin: 5px 0 0 0; opacity: 0.9;">기존 대비 처리 속도 대폭 개선</p>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                color: white; 
+                                padding: 15px; 
+                                border-radius: 10px;
+                                box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        <p style="font-size: 24pt; font-weight: bold; margin: 0;">100%</p>
+                        <p style="font-size: 10pt; margin: 5px 0 0 0;">데이터 정확도</p>
+                        <p style="font-size: 8pt; margin: 5px 0 0 0; opacity: 0.9;">픽셀 단위 정밀한 라벨링</p>
+                    </div>
+                </div>
+                
+                <div style="background: #e8f5e9; 
+                            border-radius: 8px; 
+                            padding: 15px; 
+                            margin-top: 20px;
+                            text-align: center;">
+                    <p style="margin: 0; font-size: 11pt; color: #27ae60;">
+                        <strong>✨ 핵심 성과:</strong> 다양한 AI 학습 포맷 지원으로 즉시 활용 가능한 고품질 데이터셋 생성
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 대체 링크 -->
+            <p style="margin-top: 15px; font-size: 9pt; color: rgba(255,255,255,0.8); text-align: center;">
+                영상이 보이지 않는 경우: 
+                <a href="https://drive.google.com/file/d/1bD3SdtASuV-nDIZb9g9g8P0Wk1cGrLz_/view?usp=sharing" 
+                   target="_blank"
+                   style="color: white; text-decoration: underline;">
+                    새 창에서 열기
+                </a>
+            </p>
+        </div>
+        
+        <div class="key-points" style="background: #e8f5e9;">
+            <h3 style="margin-top: 0; color: #27ae60;">1. 셰이더 기반 최적화</h3>
+            <ul>
+                <li>단일 셰이더로 5가지 세그멘테이션 모드 지원</li>
+                <li>GPU 메모리 블록 최적화로 데이터 전송 효율성 향상</li>
+                <li>런타임 모드 전환으로 머티리얼 교체 오버헤드 제거</li>
+            </ul>
+        </div>
+
+        <div class="key-points" style="background: #fff3e0;">
+            <h3 style="margin-top: 0; color: #f39c12;">2. 알고리즘 개선</h3>
+            <ul>
+                <li>객체별 순차 처리 → 배치 처리로 패러다임 전환</li>
+                <li>ReadPixels 호출 최소화
