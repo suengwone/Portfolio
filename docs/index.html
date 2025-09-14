@@ -36,6 +36,34 @@
             box-sizing: border-box;
         }
         
+        /* 비디오 컨테이너 스타일 */
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .video-container video {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
+        
+        /* 비디오 로딩 오버레이 */
+        .video-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            display: none;
+        }
+        
         /* 모바일 반응형 스타일 */
         @media screen and (max-width: 768px) {
             body {
@@ -109,16 +137,10 @@
                 padding: 20px;
             }
             
-            /* 그리드 레이아웃 모바일 대응 */
             div[style*="grid-template-columns"] {
                 display: flex !important;
                 flex-direction: column !important;
                 gap: 10px !important;
-            }
-            
-            /* 동영상 컨테이너 모바일 대응 */
-            div[style*="padding-bottom: 56.25%"] {
-                margin: 10px 0;
             }
         }
         
@@ -236,7 +258,7 @@
             color: #ffd700;
         }
         
-        /* Code Blocks - 완전히 새로운 스타일 */
+        /* Code Blocks */
         .code-block {
             background: #282c34;
             color: #abb2bf;
@@ -360,7 +382,7 @@
         }
         
         .key-points li::before {
-            content: "✓";
+            content: "✔";
             position: absolute;
             left: 0;
             color: #27ae60;
@@ -420,26 +442,6 @@
             }
         }
     </style>
-    <script>
-        // 페이지 로드 시 코드 블록 들여쓰기 조정
-        window.addEventListener('DOMContentLoaded', function() {
-            const codeBlocks = document.querySelectorAll('.code-block pre');
-            codeBlocks.forEach(block => {
-                // HTML 내용을 가져와서 각 줄의 들여쓰기를 절반으로 줄임
-                let html = block.innerHTML;
-                const lines = html.split('\n');
-                const processedLines = lines.map(line => {
-                    // 줄 시작의 공백을 찾아서 절반으로 줄임
-                    const leadingSpaces = line.match(/^(&nbsp;| )*/)?.[0] || '';
-                    const spaceCount = leadingSpaces.replace(/&nbsp;/g, ' ').length;
-                    const newSpaceCount = Math.floor(spaceCount / 2);
-                    const newSpaces = ' '.repeat(newSpaceCount);
-                    return newSpaces + line.substring(leadingSpaces.length);
-                });
-                block.innerHTML = processedLines.join('\n');
-            });
-        });
-    </script>
 </head>
 <body>
     <div class="container">
@@ -540,13 +542,14 @@
                 🎥 색상 포맷 이슈 발견 및 해결
             </h5>
             
-            <!-- Google Drive 영상 임베드 -->
-            <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                <iframe src="https://drive.google.com/file/d/1CMYUJUadALoeHvZy7MByVHezknzkssKW/preview" 
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px;"
-                        allow="autoplay; fullscreen"
-                        allowfullscreen>
-                </iframe>
+            <!-- 로컬 비디오 -->
+            <div class="video-container">
+                <video controls preload="metadata" poster="./assets/thumbnails/GenerateUniqueColor.png">
+                    <source src="./assets/videos/GenerateUniqueColor.mov" type="video/quicktime">
+                    <source src="./assets/videos/GenerateUniqueColor.mp4" type="video/mp4">
+                    브라우저가 비디오 재생을 지원하지 않습니다.
+                </video>
+                <div class="video-loading">로딩 중...</div>
             </div>
             
             <p style="margin-top: 15px; margin-bottom: 10px; color: #5a6c7d; text-align: center;">
@@ -577,16 +580,6 @@
                     💡 <strong>핵심 개선:</strong> HSV 포맷 제거, RGB32 단일 포맷 채택으로 색상 고유성 100% 보장
                 </p>
             </div>
-            
-            <!-- 대체 링크 (영상이 로드되지 않을 경우) -->
-            <p style="margin-top: 10px; font-size: 9pt; color: #95a5a6; text-align: center;">
-                영상이 보이지 않는 경우: 
-                <a href="https://drive.google.com/file/d/1CMYUJUadALoeHvZy7MByVHezknzkssKW/view?usp=sharing" 
-                   target="_blank"
-                   style="color: #3498db;">
-                    새 창에서 열기
-                </a>
-            </p>
         </div>
         
         <!-- OpenCV 색상 추출 테스트 영상 -->
@@ -595,13 +588,14 @@
                 🔍 OpenCV 색상 추출 검증 테스트
             </h5>
             
-            <!-- Google Drive 영상 임베드 -->
-            <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                <iframe src="https://drive.google.com/file/d/1apSA31ufXWslL0ibtvOmlU7kne242YH0/preview" 
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px;"
-                        allow="autoplay; fullscreen"
-                        allowfullscreen>
-                </iframe>
+            <!-- 로컬 비디오 -->
+            <div class="video-container">
+                <video controls preload="metadata" poster="./assets/thumbnails/OpenCV_Test.png">
+                    <source src="./assets/videos/OpenCV_Test.mov" type="video/quicktime">
+                    <source src="./assets/videos/OpenCV_Test.mp4" type="video/mp4">
+                    브라우저가 비디오 재생을 지원하지 않습니다.
+                </video>
+                <div class="video-loading">로딩 중...</div>
             </div>
             
             <p style="margin-top: 15px; margin-bottom: 10px; color: #5a6c7d; text-align: center;">
@@ -626,16 +620,6 @@
                     </p>
                 </div>
             </div>
-            
-            <!-- 대체 링크 -->
-            <p style="margin-top: 10px; font-size: 9pt; color: #95a5a6; text-align: center;">
-                영상이 보이지 않는 경우: 
-                <a href="https://drive.google.com/file/d/1apSA31ufXWslL0ibtvOmlU7kne242YH0/view?usp=sharing" 
-                   target="_blank"
-                   style="color: #f39c12;">
-                    새 창에서 열기
-                </a>
-            </p>
         </div>
 
         <div class="page-break"></div>
@@ -800,19 +784,21 @@
     }
 }</pre>
         </div>
+        
         <!-- Shader 성능 테스트 영상 -->
         <div style="background: #e3f2fd; border: 2px solid #2196f3; border-radius: 10px; padding: 20px; margin: 20px 0;">
             <h5 style="color: #2c3e50; margin-top: 0; margin-bottom: 15px; text-align: center;">
                 ⚡ Shader 모드 전환 성능 테스트
             </h5>
             
-            <!-- Google Drive 영상 임베드 -->
-            <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                <iframe src="https://drive.google.com/file/d/1sApl7goQxRJZnbnJRVzXMfDAVk5yGffD/preview" 
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px;"
-                        allow="autoplay; fullscreen"
-                        allowfullscreen>
-                </iframe>
+            <!-- 로컬 비디오 -->
+            <div class="video-container">
+                <video controls preload="metadata" poster="./assets/thumbnails/ShaderModeSwitchTest.png">
+                    <source src="./assets/videos/ShaderModeSwitchTest.mov" type="video/quicktime">
+                    <source src="./assets/videos/ShaderModeSwitchTest.mp4" type="video/mp4">
+                    브라우저가 비디오 재생을 지원하지 않습니다.
+                </video>
+                <div class="video-loading">로딩 중...</div>
             </div>
             
             <p style="margin-top: 15px; margin-bottom: 10px; color: #5a6c7d; text-align: center;">
@@ -851,16 +837,6 @@
                     빠른 모드 전환에도 안정적인 성능 유지
                 </p>
             </div>
-            
-            <!-- 대체 링크 -->
-            <p style="margin-top: 10px; font-size: 9pt; color: #95a5a6; text-align: center;">
-                영상이 보이지 않는 경우: 
-                <a href="https://drive.google.com/file/d/1sApl7goQxRJZnbnJRVzXMfDAVk5yGffD/view?usp=sharing" 
-                   target="_blank"
-                   style="color: #2196f3;">
-                    새 창에서 열기
-                </a>
-            </p>
         </div>
 
         <h2>📊 성능 개선 결과</h2>
@@ -950,13 +926,14 @@
                 🎯 최종 결과물 - AI 데이터 생성 시스템 실행
             </h3>
             
-            <!-- Google Drive 영상 임베드 -->
-            <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.3);">
-                <iframe src="https://drive.google.com/file/d/1bD3SdtASuV-nDIZb9g9g8P0Wk1cGrLz_/preview" 
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 10px;"
-                        allow="autoplay; fullscreen"
-                        allowfullscreen>
-                </iframe>
+            <!-- 로컬 비디오 -->
+            <div class="video-container" style="box-shadow: 0 8px 25px rgba(0,0,0,0.3);">
+                <video controls preload="metadata" poster="./assets/thumbnails/Result.png">
+                    <source src="./assets/videos/Result.mov" type="video/quicktime">
+                    <source src="./assets/videos/Result.mp4" type="video/mp4">
+                    브라우저가 비디오 재생을 지원하지 않습니다.
+                </video>
+                <div class="video-loading">로딩 중...</div>
             </div>
             
             <div style="background: rgba(255,255,255,0.95); border-radius: 10px; padding: 20px; margin-top: 20px;">
@@ -1033,16 +1010,6 @@
                     </p>
                 </div>
             </div>
-            
-            <!-- 대체 링크 -->
-            <p style="margin-top: 15px; font-size: 9pt; color: rgba(255,255,255,0.8); text-align: center;">
-                영상이 보이지 않는 경우: 
-                <a href="https://drive.google.com/file/d/1bD3SdtASuV-nDIZb9g9g8P0Wk1cGrLz_/view?usp=sharing" 
-                   target="_blank"
-                   style="color: white; text-decoration: underline;">
-                    새 창에서 열기
-                </a>
-            </p>
         </div>
         
         <div class="key-points" style="background: #e8f5e9;">
@@ -1058,4 +1025,49 @@
             <h3 style="margin-top: 0; color: #f39c12;">2. 알고리즘 개선</h3>
             <ul>
                 <li>객체별 순차 처리 → 배치 처리로 패러다임 전환</li>
-                <li>ReadPixels 호출 최소화
+                <li>ReadPixels 호출 최소화</li>
+                <li>색상 기반 병렬 세그멘테이션으로 처리 시간 대폭 단축</li>
+            </ul>
+        </div>
+
+        <div class="key-points" style="background: #fce4ec;">
+            <h3 style="margin-top: 0; color: #e91e63;">3. 실무 적용 가능성</h3>
+            <ul>
+                <li>대규모 AI 학습 데이터셋 빠른 구축 가능</li>
+                <li>다양한 출력 포맷 지원 (YOLO, COCO, Pascal VOC)</li>
+                <li>픽셀 단위 정확도로 고품질 라벨링 데이터 제공</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 비디오 로딩 표시 처리
+        document.addEventListener('DOMContentLoaded', function() {
+            const videos = document.querySelectorAll('video');
+            
+            videos.forEach(video => {
+                const container = video.closest('.video-container');
+                const loading = container.querySelector('.video-loading');
+                
+                // 로딩 시작
+                video.addEventListener('loadstart', function() {
+                    if(loading) loading.style.display = 'block';
+                });
+                
+                // 로딩 완료
+                video.addEventListener('canplay', function() {
+                    if(loading) loading.style.display = 'none';
+                });
+                
+                // 에러 처리
+                video.addEventListener('error', function() {
+                    if(loading) {
+                        loading.textContent = '비디오를 로드할 수 없습니다';
+                        loading.style.color = '#e74c3c';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
