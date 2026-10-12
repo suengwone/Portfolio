@@ -95,7 +95,7 @@ const cache={};
 const FLOORS=[{id:'oak-n',n:'내추럴 오크',c:'#bc9466'},{id:'oak-l',n:'라이트 오크',c:'#d8c09c'},{id:'walnut',n:'월넛',c:'#704e36'},{id:'gray',n:'그레이 오크',c:'#aaa298'},{id:'tile',n:'베이지 타일',c:'#d0c6b6'}];
 const WALLS=[{id:'cream',n:'크림',c:'#e8decc',a:[.78,.73,.65]},{id:'white',n:'화이트',c:'#f0eee8',a:[.86,.85,.81]},{id:'greige',n:'그레이지',c:'#d0c6b8',a:[.62,.56,.48]},{id:'sand',n:'샌드 베이지',c:'#dac8ac',a:[.68,.57,.42]},{id:'gray',n:'라이트 그레이',c:'#d6d6d4',a:[.66,.66,.65]},{id:'sage',n:'세이지',c:'#bec6b4',a:[.50,.56,.44]}];
 const TEMPS=[{id:'3000',n:'전구색 3000K',a:[1,.78,.58]},{id:'4000',n:'주백색 4000K',a:[1,.88,.76]},{id:'5700',n:'주광색 5700K',a:[.95,.97,1]}];
-const READY=window.READY_FLOORS||['oak-n','walnut'];
+const READY=['oak-n','oak-l','walnut','gray','tile'];
 let O={floor:'oak-n',wall:'cream',temp:'3000',bright:100};
 try{const j=JSON.parse(localStorage.getItem('home-tour-opts'));if(j&&READY.includes(j.floor))O=Object.assign(O,j)}catch(e){}
 const G=x=>Math.pow(x,1/2.2);
