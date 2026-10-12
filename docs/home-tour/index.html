@@ -19,9 +19,17 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);overflow:hidde
 #head h1{font-size:13px;font-weight:400;color:var(--muted);margin:0;letter-spacing:.02em}
 #room{font-size:22px;font-weight:600;margin-top:2px}
 #hint{font-size:12px;color:var(--muted);margin-top:4px}
-#vers{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-#vers button{font:inherit;font-size:12px;color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer;white-space:nowrap}
-#vers button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+#optbtn{font:inherit;font-size:13px;color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 12px;margin-top:8px;cursor:pointer}
+#optbtn[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+#opts{position:absolute;left:16px;right:16px;bottom:calc(64px + env(safe-area-inset-bottom,0px));padding:10px 12px;display:flex;flex-direction:column;gap:8px;max-width:560px}
+.orow{display:flex;align-items:center;gap:8px;min-width:0}
+.olab{flex:none;width:38px;font-size:12px;color:var(--muted)}
+.oscroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.oscroll::-webkit-scrollbar{display:none}
+.sw{font:inherit;font-size:12px;color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.sw i{width:14px;height:14px;border-radius:50%;border:1px solid var(--line)}
+.sw[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+#o-bright{flex:1;accent-color:var(--accent)}
 #map{position:absolute;right:16px;top:16px;padding:8px;width:132px}
 #map svg{display:block;width:100%;height:auto}
 #map .wall{stroke:var(--fg);stroke-width:.14;fill:none;stroke-linecap:square;opacity:.8}
@@ -47,11 +55,17 @@ button:focus-visible,.hit:focus-visible{outline:2px solid var(--accent);outline-
 <div id="stage" aria-label="360도 실내 보기. 드래그하거나 방향키로 둘러볼 수 있습니다.">
   <div id="fade"></div>
   <div id="hs"></div>
-  <div id="head" class="panel"><h1>우리집 3D 투어</h1><div id="room">현관</div><div id="hint">드래그해서 둘러보고, 노란 점을 눌러 이동하세요</div><div id="vers" role="group" aria-label="렌더링 버전"></div></div>
+  <div id="head" class="panel"><h1>우리집 3D 투어</h1><div id="room">현관</div><div id="hint">드래그해서 둘러보고, 노란 점을 눌러 이동하세요</div><button id="optbtn" aria-expanded="false" aria-controls="opts">마감·조명 바꾸기</button></div>
   <div id="map" class="panel"><svg viewBox="-0.3 -0.3 8.1 10.3" role="group" aria-label="평면도에서 위치 선택">
     <path class="wall" d="M0 0H7.5V9.7H1V6.85M1 5.95V5.8H0V0M3.5 0V3.5M0 3H2.55M4.4 3.5H7.5M2.5 3V4M2.5 4.8V5.8M4.5 6.5H7.5M4.5 9.3V9.7"/>
     <path id="cone" d=""/><g id="dots"></g></svg></div>
   <div id="msg" class="panel">불러오는 중입니다</div>
+  <div id="opts" class="panel" hidden>
+    <div class="orow"><span class="olab">바닥</span><div class="oscroll" id="o-floor"></div></div>
+    <div class="orow"><span class="olab">벽지</span><div class="oscroll" id="o-wall"></div></div>
+    <div class="orow"><span class="olab">빛 색</span><div class="oscroll" id="o-temp"></div></div>
+    <div class="orow"><label class="olab" for="o-bright">밝기</label><input id="o-bright" type="range" min="60" max="140" value="100"></div>
+  </div>
   <nav id="chips" aria-label="방 이동"></nav>
 </div>
 
@@ -78,33 +92,48 @@ const stage=document.getElementById('stage'),msg=document.getElementById('msg'),
 const phiTo=(from,to)=>Math.PI+Math.atan2(to[0]-from[0],-(to[1]-from[1]));
 let cur='entry',phi=0,lat=-0.05,fov=75,renderer,scene,camera,mesh,hot=[];
 const cache={};
-const VERS=[{id:'v4',n:'4차 라이트 오크·샌드'},{id:'v3',n:'3차 월넛 바닥'},{id:'v2',n:'2차 웜톤 오크'},{id:'v1',n:'1차 화이트'}];
-const POS={v1:{room1:[[6.0,8.1],[2,8.6]],room2:[[5.4,1.9],[5.6,0]]},def:{room1:[[5.2,7.3],[6.3,8.6]],room2:[[4.5,2.5],[6.4,1.2]]}};
-let ver='v4';
-function setVer(v){ver=v;const P=POS[v]||POS.def;for(const k in P){SPOTS[k].p=P[k][0];SPOTS[k].look=P[k][1];const d=document.getElementById('dot-'+k);d.setAttribute('cx',P[k][0][0]);d.setAttribute('cy',P[k][0][1]);const h=d.nextElementSibling;h.setAttribute('cx',P[k][0][0]);h.setAttribute('cy',P[k][0][1])}
-  for(const b of document.getElementById('vers').children)b.setAttribute('aria-pressed',b.dataset.v===v);go(cur,true,true)}
+const FLOORS=[{id:'oak-n',n:'내추럴 오크',c:'#bc9466'},{id:'oak-l',n:'라이트 오크',c:'#d8c09c'},{id:'walnut',n:'월넛',c:'#704e36'},{id:'gray',n:'그레이 오크',c:'#aaa298'},{id:'tile',n:'베이지 타일',c:'#d0c6b6'}];
+const WALLS=[{id:'cream',n:'크림',c:'#e8decc',a:[.78,.73,.65]},{id:'white',n:'화이트',c:'#f0eee8',a:[.86,.85,.81]},{id:'greige',n:'그레이지',c:'#d0c6b8',a:[.62,.56,.48]},{id:'sand',n:'샌드 베이지',c:'#dac8ac',a:[.68,.57,.42]},{id:'gray',n:'라이트 그레이',c:'#d6d6d4',a:[.66,.66,.65]},{id:'sage',n:'세이지',c:'#bec6b4',a:[.50,.56,.44]}];
+const TEMPS=[{id:'3000',n:'전구색 3000K',a:[1,.78,.58]},{id:'4000',n:'주백색 4000K',a:[1,.88,.76]},{id:'5700',n:'주광색 5700K',a:[.95,.97,1]}];
+const READY=window.READY_FLOORS||['oak-n','walnut'];
+let O={floor:'oak-n',wall:'cream',temp:'3000',bright:100};
+try{const j=JSON.parse(localStorage.getItem('home-tour-opts'));if(j&&READY.includes(j.floor))O=Object.assign(O,j)}catch(e){}
+const G=x=>Math.pow(x,1/2.2);
+function applyOpts(){const w=WALLS.find(x=>x.id===O.wall)||WALLS[0],t=TEMPS.find(x=>x.id===O.temp)||TEMPS[0],b=G(O.bright/100),u=mesh.material.uniforms;
+  u.wallGain.value.set(G(w.a[0]/WALLS[0].a[0]),G(w.a[1]/WALLS[0].a[1]),G(w.a[2]/WALLS[0].a[2]));u.gain.value.set(b*G(t.a[0]/TEMPS[0].a[0]),b*G(t.a[1]/TEMPS[0].a[1]),b*G(t.a[2]/TEMPS[0].a[2]));
+  try{localStorage.setItem('home-tour-opts',JSON.stringify(O))}catch(e){}}
+function initOpts(){const $=id=>document.getElementById(id),sw=(box,list,key,after)=>{box.innerHTML='';for(const o of list){if(key==='floor'&&!READY.includes(o.id))continue;const b=document.createElement('button');b.className='sw';b.setAttribute('aria-pressed',O[key]===o.id);b.innerHTML=(o.c?`<i style="background:${o.c}"></i>`:'')+o.n;b.onclick=()=>{O[key]=o.id;sw(box,list,key,after);applyOpts();after&&after()};box.appendChild(b)}};
+  sw($('o-floor'),FLOORS,'floor',()=>go(cur,true,true));sw($('o-wall'),WALLS,'wall');sw($('o-temp'),TEMPS,'temp');
+  $('o-bright').value=O.bright;$('o-bright').oninput=e=>{O.bright=+e.target.value;applyOpts()};
+  $('optbtn').onclick=()=>{const h=!$('opts').hidden;$('opts').hidden=h;$('optbtn').setAttribute('aria-expanded',!h)};
+  for(const el of[$('opts'),$('optbtn')])el.addEventListener('pointerdown',e=>e.stopPropagation());applyOpts()}
+
+
+
+
 function boot(){
   if(!window.THREE){msg.textContent='3D 라이브러리를 불러오지 못했습니다. 새로고침해 주세요.';return}
   renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));if(!('outputColorSpace' in renderer))renderer.outputEncoding=THREE.sRGBEncoding;
   stage.insertBefore(renderer.domElement,stage.firstChild);
   scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(fov,1,.1,100);
   const g=new THREE.SphereGeometry(50,64,40);g.scale(-1,1,1);
-  mesh=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xffffff}));scene.add(mesh);
+  mesh=new THREE.Mesh(g,new THREE.ShaderMaterial({uniforms:{map:{value:null},mask:{value:null},wallGain:{value:new THREE.Vector3(1,1,1)},gain:{value:new THREE.Vector3(1,1,1)}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform sampler2D map;uniform sampler2D mask;uniform vec3 wallGain;uniform vec3 gain;varying vec2 vUv;void main(){vec3 c=texture2D(map,vUv).rgb;float m=texture2D(mask,vUv).r;c*=mix(vec3(1.),wallGain,m)*gain;gl_FragColor=vec4(c,1.);}'}));scene.add(mesh);
   const chips=document.getElementById('chips'),dots=document.getElementById('dots');
   for(const k in SPOTS){const s=SPOTS[k];
     const b=document.createElement('button');b.id='chip-'+k;b.textContent=s.n;b.onclick=()=>go(k);chips.appendChild(b);
     dots.insertAdjacentHTML('beforeend',`<circle class="spot" id="dot-${k}" cx="${s.p[0]}" cy="${s.p[1]}" r=".28"/><circle class="hit" data-k="${k}" cx="${s.p[0]}" cy="${s.p[1]}" r=".7" tabindex="0" role="button" aria-label="${s.n}로 이동"/>`)}
   dots.addEventListener('click',e=>{const k=e.target.dataset.k;if(k)go(k)});
   dots.addEventListener('keydown',e=>{const k=e.target.dataset.k;if(k&&(e.key==='Enter'||e.key===' ')){e.preventDefault();go(k)}});
-  resize();addEventListener('resize',resize);controls();for(const v of VERS){const b=document.createElement('button');b.textContent=v.n;b.dataset.v=v.id;b.setAttribute('aria-pressed',v.id===ver);b.onclick=()=>{if(v.id!==ver)setVer(v.id)};b.onpointerdown=e=>e.stopPropagation();document.getElementById('vers').appendChild(b)}go('entry',true);requestAnimationFrame(tick);
+  resize();addEventListener('resize',resize);controls();initOpts();go('entry',true);requestAnimationFrame(tick);
 }
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?Math.max(fov,92):fov;camera.updateProjectionMatrix()}
-function load(k){const key=ver+'/'+k;return cache[key]||(cache[key]=new Promise((ok,no)=>new THREE.TextureLoader().load('pano/'+key+'.jpg',t=>{if('colorSpace' in t)t.colorSpace='srgb';else t.encoding=THREE.sRGBEncoding;t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;ok(t)},undefined,no)))}
+function tex(u){return cache[u]||(cache[u]=new Promise((ok,no)=>new THREE.TextureLoader().load(u,t=>{t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;ok(t)},undefined,no)))}
+function load(k){return Promise.all([tex('pano/f/'+O.floor+'/'+k+'.jpg'),tex('pano/mask/'+k+'.jpg')])}
 function go(k,first,keep){
   if(k===cur&&!first)return;
   fade.classList.add('on');msg.hidden=false;msg.textContent='불러오는 중입니다';
   load(k).then(t=>{
-    cur=k;const s=SPOTS[k];mesh.material.map=t;mesh.material.needsUpdate=true;
+    cur=k;const s=SPOTS[k];mesh.material.uniforms.map.value=t[0];mesh.material.uniforms.mask.value=t[1];
     if(!keep){phi=phiTo(s.p,s.look);lat=-0.05}
     document.getElementById('room').textContent=s.n;
     for(const j in SPOTS){document.getElementById('chip-'+j).setAttribute('aria-current',j===k);document.getElementById('dot-'+j).classList.toggle('on',j===k)}
