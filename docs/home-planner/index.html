@@ -32,6 +32,8 @@ button.danger{color:var(--danger);border-color:var(--danger)}
 .sw i{display:block;width:44px;height:44px;border-radius:8px;border:1px solid var(--line)}
 input[type=range]{flex:1;min-width:120px;accent-color:var(--accent)}
 #sel{font-size:13px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin:0}
+textarea{width:100%;box-sizing:border-box;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:8px;font:12px/1.4 ui-monospace,monospace;padding:8px;resize:none}
 #msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 18px;font-size:14px}
 @media (max-width:480px){#hint{display:none}}
 </style>
@@ -53,9 +55,15 @@ input[type=range]{flex:1;min-width:120px;accent-color:var(--accent)}
       <button role="tab" id="t-floor" aria-selected="true">바닥</button>
       <button role="tab" id="t-wall" aria-selected="false">벽지</button>
       <button role="tab" id="t-light" aria-selected="false">조명</button>
+      <button role="tab" id="t-req" aria-selected="false">실사 요청</button>
     </div>
     <div class="pane" id="p-floor"><div class="row" id="floors"></div></div>
     <div class="pane" id="p-wall" hidden><div class="row" id="walls"></div></div>
+    <div class="pane" id="p-req" hidden>
+      <p class="note">지금 꾸민 상태를 설정 코드로 만들어 드립니다. 이 코드를 Claude 대화에 붙여 넣고 실사 렌더링을 요청하면, 같은 설정으로 실사풍 투어를 만들어 드려요. 한 번에 1시간쯤 걸립니다.</p>
+      <div class="row"><button id="mkcode">설정 코드 복사</button><span id="cstat" class="note"></span></div>
+      <textarea id="code" readonly rows="3" aria-label="설정 코드"></textarea>
+    </div>
     <div class="pane" id="p-light" hidden>
       <div class="row"><span class="lab">빛 색</span><div class="seg" id="temps"></div></div>
       <div class="row"><label class="lab" for="bright">밝기</label><input id="bright" type="range" min="40" max="180" value="100"></div>
@@ -186,9 +194,11 @@ function ui(){
   $('edit').hidden=mode!=='top';$('go-edit').textContent=mode==='top'?'둘러보기로 돌아가기':'조명 위치 바꾸기';
   const L=S.lights[selected];$('selrow').hidden=!(mode==='top'&&L);if(L){$('sel').textContent=TYPES[L.t];$('rot').hidden=L.t!=='line';[...$('types').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===L.t))}
   [...$('temps').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===S.temp))}
-function tab(k){for(const t of['floor','wall','light']){$('t-'+t).setAttribute('aria-selected',t===k);$('p-'+t).hidden=t!==k}resize()}
+function tab(k){for(const t of['floor','wall','light','req']){$('t-'+t).setAttribute('aria-selected',t===k);$('p-'+t).hidden=t!==k}if(k==='req'){$('code').value=code();$('cstat').textContent=''}resize()}
 function setMode(m){mode=m;selected=-1;meshes.ceil.visible=m==='walk';markGroup.visible=m==='top';if(m==='top')tab('light');rebuildLights();ui();resize()}
+function code(){return'HOME1:'+btoa(JSON.stringify({v:1,f:S.floor,w:S.wall,t:S.temp,b:S.bright,l:S.lights.map(L=>[L.t,+L.x.toFixed(2),+L.y.toFixed(2),L.r?1:0])}))}
 function initUI(){
+  $('mkcode').onclick=()=>{const c=code();$('code').value=c;const ok=()=>{$('cstat').textContent='복사했습니다. 대화에 붙여 넣어 주세요.'},no=()=>{$('code').focus();$('code').select();$('cstat').textContent='자동 복사가 안 됐어요. 아래 코드를 직접 복사해 주세요.'};try{navigator.clipboard.writeText(c).then(ok,no)}catch(e){no()}};
   swatches($('floors'),FLOORS,'floor');swatches($('walls'),WALLS,'wall');
   for(const t of TEMPS){const b=document.createElement('button');b.textContent=t.n;b.dataset.id=t.id;b.onclick=()=>{S.temp=t.id;refresh()};$('temps').appendChild(b)}
   for(const k in TYPES){const b=document.createElement('button');b.textContent='+ '+TYPES[k];b.onclick=()=>{S.lights.push({t:k,x:3.2,y:7.9,r:0});selected=S.lights.length-1;refresh()};$('adds').appendChild(b);
@@ -198,12 +208,12 @@ function initUI(){
   $('rot').onclick=()=>{const L=S.lights[selected];if(L){L.r=L.r?0:1;refresh()}};
   $('reset').onclick=()=>{S.lights=DEF_LIGHTS();selected=-1;refresh()};
   $('go-edit').onclick=()=>setMode(mode==='top'?'walk':'top');$('m-walk').onclick=()=>setMode('walk');$('m-top').onclick=()=>setMode('top');
-  for(const t of['floor','wall','light'])$('t-'+t).onclick=()=>tab(t)}
+  for(const t of['floor','wall','light','req'])$('t-'+t).onclick=()=>tab(t)}
 
 /* camera and input */
 let pos={x:1.6,z:6.5},yaw=Math.atan2(8.6-6.5,4-1.6),pitch=-.05,walk=null;
 function resize(){const st=$('stage'),w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);cam.aspect=w/h;cam.fov=w<h?92:74;cam.updateProjectionMatrix();
-  const pad=.6,W=7.5+pad*2,Hh=9.7+pad*2,s=Math.max(W/w,Hh/h);ocam.left=-w*s/2;ocam.right=w*s/2;ocam.top=h*s/2;ocam.bottom=-h*s/2;ocam.updateProjectionMatrix();dirty=true}
+  const pad=.6,W=7.5+pad*2,Hh=9.7+pad*2,s=Math.max(W/w,Hh/h);const off=w<600?46:0,s2=Math.max(W/w,Hh/(h-off*2));ocam.left=-w*s2/2;ocam.right=w*s2/2;ocam.top=h*s2/2+off*s2;ocam.bottom=-h*s2/2+off*s2;ocam.updateProjectionMatrix();dirty=true}
 function input(){const st=$('stage'),ray=new THREE.Raycaster(),v=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();let d=null;
   const ndc=e=>{const r=st.getBoundingClientRect();v.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1)};
   st.addEventListener('pointerdown',e=>{if(e.target.closest('#head'))return;st.setPointerCapture(e.pointerId);ndc(e);d={x:e.clientX,y:e.clientY,yaw,pitch,moved:false,li:-1};
