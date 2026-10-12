@@ -78,9 +78,9 @@ const stage=document.getElementById('stage'),msg=document.getElementById('msg'),
 const phiTo=(from,to)=>Math.PI+Math.atan2(to[0]-from[0],-(to[1]-from[1]));
 let cur='entry',phi=0,lat=-0.05,fov=75,renderer,scene,camera,mesh,hot=[];
 const cache={};
-const VERS=[{id:'v3',n:'3차 월넛 바닥'},{id:'v2',n:'2차 웜톤 오크'},{id:'v1',n:'1차 화이트'}];
+const VERS=[{id:'v4',n:'4차 라이트 오크·샌드'},{id:'v3',n:'3차 월넛 바닥'},{id:'v2',n:'2차 웜톤 오크'},{id:'v1',n:'1차 화이트'}];
 const POS={v1:{room1:[[6.0,8.1],[2,8.6]],room2:[[5.4,1.9],[5.6,0]]},def:{room1:[[5.2,7.3],[6.3,8.6]],room2:[[4.5,2.5],[6.4,1.2]]}};
-let ver='v3';
+let ver='v4';
 function setVer(v){ver=v;const P=POS[v]||POS.def;for(const k in P){SPOTS[k].p=P[k][0];SPOTS[k].look=P[k][1];const d=document.getElementById('dot-'+k);d.setAttribute('cx',P[k][0][0]);d.setAttribute('cy',P[k][0][1]);const h=d.nextElementSibling;h.setAttribute('cx',P[k][0][0]);h.setAttribute('cy',P[k][0][1])}
   for(const b of document.getElementById('vers').children)b.setAttribute('aria-pressed',b.dataset.v===v);go(cur,true,true)}
 function boot(){
