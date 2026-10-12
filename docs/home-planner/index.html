@@ -31,7 +31,8 @@ button.danger{color:var(--danger);border-color:var(--danger)}
 .sw{display:flex;flex-direction:column;align-items:center;gap:5px;border-radius:10px;padding:6px 8px;font-size:12px;min-width:66px}
 .sw i{display:block;width:44px;height:44px;border-radius:8px;border:1px solid var(--line)}
 input[type=range]{flex:1;min-width:120px;accent-color:var(--accent)}
-#sel{font-size:13px;color:var(--muted)}
+#sel,#fsel{font-size:13px;color:var(--muted);flex:none}
+#fadds{flex-wrap:nowrap}
 .note{font-size:13px;color:var(--muted);margin:0}
 textarea{width:100%;box-sizing:border-box;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:8px;font:12px/1.4 ui-monospace,monospace;padding:8px;resize:none}
 #msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 18px;font-size:14px}
@@ -44,7 +45,7 @@ textarea{width:100%;box-sizing:border-box;background:transparent;color:var(--fg)
       <h1>우리집 꾸미기</h1>
       <div class="seg" role="group" aria-label="보기 방식">
         <button id="m-walk" aria-pressed="true">둘러보기</button>
-        <button id="m-top" aria-pressed="false">조명 배치</button>
+        <button id="m-top" aria-pressed="false">배치 편집</button>
       </div>
       <p id="hint">드래그하면 시선이 돌아가고, 바닥을 누르면 그 자리로 이동합니다.</p>
     </div>
@@ -55,10 +56,16 @@ textarea{width:100%;box-sizing:border-box;background:transparent;color:var(--fg)
       <button role="tab" id="t-floor" aria-selected="true">바닥</button>
       <button role="tab" id="t-wall" aria-selected="false">벽지</button>
       <button role="tab" id="t-light" aria-selected="false">조명</button>
+      <button role="tab" id="t-furn" aria-selected="false">가구</button>
       <button role="tab" id="t-req" aria-selected="false">실사 요청</button>
     </div>
     <div class="pane" id="p-floor"><div class="row" id="floors"></div></div>
     <div class="pane" id="p-wall" hidden><div class="row" id="walls"></div></div>
+    <div class="pane" id="p-furn" hidden>
+      <div class="row"><span class="lab">추가</span><div class="seg" id="fadds"></div></div>
+      <div class="row" id="fselrow" hidden><span class="lab">선택</span><span id="fsel"></span><button id="frot">90° 회전</button><button id="fdel" class="danger">삭제</button></div>
+      <div class="row"><button id="go-edit2">가구 옮기기</button><button id="freset">처음 배치로</button><button id="fclear" class="danger">가구 모두 빼기</button></div>
+    </div>
     <div class="pane" id="p-req" hidden>
       <p class="note">지금 꾸민 상태를 설정 코드로 만들어 드립니다. 이 코드를 Claude 대화에 붙여 넣고 실사 렌더링을 요청하면, 같은 설정으로 실사풍 투어를 만들어 드려요. 한 번에 1시간쯤 걸립니다.</p>
       <div class="row"><button id="mkcode">설정 코드 복사</button><span id="cstat" class="note"></span></div>
@@ -94,8 +101,12 @@ const TEMPS=[{id:'3000',n:'전구색 3000K',c:[1,.91,.79]},{id:'4000',n:'주백�
 const TYPES={down:'다운라이트',pend:'펜던트',flush:'방등',line:'라인조명',stand:'스탠드'};
 const DEF_LIGHTS=()=>[[1.9,7.4],[3.6,7.4],[1.9,8.8],[3.6,8.8],[5.3,7.4],[6.7,7.4],[5.3,8.8],[6.7,8.8],[5.1,4.2],[6.3,4.2],[5.1,5.3],[6.3,5.3],[1.55,6.4],[4.6,.9],[6.5,.9],[4.6,2.6],[6.5,2.6],[.9,.8],[2.6,.8],[.9,2.2],[2.6,2.2],[1.25,3.7],[1.25,5.1]]
  .map(p=>({t:'down',x:p[0],y:p[1]})).concat([{t:'line',x:3.5,y:5,r:1},{t:'line',x:2.8,y:9.5,r:0},{t:'line',x:6,y:9.5,r:0},{t:'pend',x:6,y:8.2},{t:'stand',x:1.28,y:7.2}]);
-let S={floor:'oak-n',wall:'cream',temp:'3000',bright:100,lights:DEF_LIGHTS()};
-try{const j=JSON.parse(localStorage.getItem('home-planner-v1'));if(j&&Array.isArray(j.lights))S=Object.assign(S,j)}catch(e){}
+const FURN={"sofa":{"n":"소파","w":1.9,"d":0.9,"p":[["b",-0.95,0.95,0.1,0.42,-0.45,0.45,"fabric"],["b",-0.95,0.95,0.42,0.78,-0.45,-0.21,"fabric"],["b",-0.95,-0.73,0.42,0.6,-0.21,0.45,"fabric"],["b",0.73,0.95,0.42,0.6,-0.21,0.45,"fabric"],["b",-0.7,-0.01,0.42,0.52,-0.17,0.42,"fabric"],["b",0.01,0.7,0.42,0.52,-0.17,0.42,"fabric"]]},"chair":{"n":"1인 소파","w":0.8,"d":0.8,"p":[["b",-0.4,0.4,0.1,0.42,-0.4,0.4,"fabric"],["b",-0.4,0.4,0.42,0.78,-0.4,-0.2,"fabric"],["b",-0.4,-0.26,0.42,0.6,-0.2,0.4,"fabric"],["b",0.26,0.4,0.42,0.6,-0.2,0.4,"fabric"]]},"ctable":{"n":"커피 테이블","w":0.84,"d":0.84,"p":[["c",0,0,0,0.33,0.13,"walnut"],["c",0,0,0.33,0.37,0.42,"walnut"]]},"dining":{"n":"식탁 세트","w":2.1,"d":2.1,"p":[["c",0,0,0,0.03,0.3,"walnut"],["c",0,0,0,0.71,0.08,"walnut"],["c",0,0,0.71,0.75,0.55,"walnut"],["c",0.85,0,0,0.42,0.035,"dark"],["c",0.85,0,0.42,0.47,0.19,"fabric"],["c",-0.85,0,0,0.42,0.035,"dark"],["c",-0.85,0,0.42,0.47,0.19,"fabric"],["c",0,0.85,0,0.42,0.035,"dark"],["c",0,0.85,0.42,0.47,0.19,"fabric"],["c",0,-0.85,0,0.42,0.035,"dark"],["c",0,-0.85,0.42,0.47,0.19,"fabric"]]},"bedq":{"n":"침대(퀸)","w":1.8,"d":2.12,"p":[["b",-0.85,0.85,0,0.28,-0.98,1.06,"walnut"],["b",-0.8,0.8,0.28,0.5,-0.93,1.01,"linen"],["b",-0.9,0.9,0,0.95,-1.06,-0.98,"walnut"],["b",-0.7,-0.1,0.5,0.62,-0.88,-0.45,"white"],["b",0.1,0.7,0.5,0.62,-0.88,-0.45,"white"],["b",-0.81,0.81,0.5,0.53,-0.1,1.02,"sage"]]},"beds":{"n":"침대(싱글)","w":1.2,"d":2.12,"p":[["b",-0.55,0.55,0,0.28,-0.98,1.06,"walnut"],["b",-0.5,0.5,0.28,0.5,-0.93,1.01,"linen"],["b",-0.6,0.6,0,0.95,-1.06,-0.98,"walnut"],["b",-0.3,0.3,0.5,0.62,-0.88,-0.45,"white"],["b",-0.51,0.51,0.5,0.53,-0.1,1.02,"sage"]]},"desk":{"n":"책상과 의자","w":1.2,"d":1.0,"p":[["b",-0.6,0.6,0.71,0.75,-0.5,0.1,"oak"],["b",-0.58,-0.54,0,0.71,-0.48,0.08,"dark"],["b",0.54,0.58,0,0.71,-0.48,0.08,"dark"],["c",0,0.3,0,0.42,0.03,"dark"],["c",0,0.3,0.42,0.47,0.2,"fabric"]]},"ward":{"n":"옷장","w":1.2,"d":0.6,"p":[["b",-0.6,0.6,0,2.1,-0.3,0.3,"cream"],["b",-0.003,0.003,0.05,2.05,0.3,0.303,"dark"]]},"tv":{"n":"TV장","w":1.6,"d":0.4,"p":[["b",-0.8,0.8,0.05,0.45,-0.2,0.2,"oak"],["b",-0.15,0.15,0.45,0.52,-0.08,0.02,"dark"],["b",-0.62,0.62,0.52,1.24,-0.05,-0.02,"dark"]]},"side":{"n":"협탁","w":0.4,"d":0.4,"p":[["c",0,0,0,0.45,0.2,"walnut"]]},"rug":{"n":"러그","w":1.9,"d":2.0,"p":[["b",-0.95,0.95,0,0.012,-1.0,1.0,"sage"]]}};
+const FC={fabric:[.8,.75,.66],walnut:[.3,.2,.14],dark:[.12,.12,.13],linen:[.86,.82,.75],white:[.93,.93,.92],sage:[.5,.53,.44],oak:[.62,.47,.31],cream:[.86,.82,.75]};
+const DEF_FURN=()=>[{t:'sofa',x:1.57,y:8.35,r:3},{t:'rug',x:3.05,y:8.3,r:0},{t:'ctable',x:3.1,y:8.6,r:0},{t:'dining',x:6,y:8.2,r:0},{t:'bedq',x:6.36,y:1.6,r:1},{t:'side',x:7.2,y:.4,r:0}];
+const R=(u,v,r)=>[[u,v],[-v,u],[-u,-v],[v,-u]][r&3];
+let S={floor:'oak-n',wall:'cream',temp:'3000',bright:100,lights:DEF_LIGHTS(),furn:DEF_FURN()};
+try{const j=JSON.parse(localStorage.getItem('home-planner-v1'));if(j&&Array.isArray(j.lights))S=Object.assign(S,j);if(!Array.isArray(S.furn))S.furn=DEF_FURN();S.furn=S.furn.filter(f=>FURN[f.t])}catch(e){}
 const save=()=>{try{localStorage.setItem('home-planner-v1',JSON.stringify(S))}catch(e){}};
 const zoneOf=(x,y)=>x<3.5&&y<3?1:x>3.5&&y<3.5?2:x<2.5&&y>3&&y<5.8?3:0;
 const ZAREA=[37,14,10.5,7];
@@ -135,15 +146,15 @@ function build(){
   box(F,7.1,7.44,1.5,2.2,4.4,4.86,3,cream);box(F,7.1,7.44,1.5,2.2,5.94,6.44,3,cream);box(F,6.95,7.4,.88,.89,5.82,6.38,3,dark);box(F,7,7.36,.88,.885,5.1,5.7,3,steel);
   box(F,4.6,5.45,0,1.8,5.75,6.42,3,steel);box(F,1.5,2.5,.2,2.2,5.86,6.16,3,cream);box(F,.98,1.02,0,2.1,5.95,6.85,3,[.2,.21,.23]);
   box(F,.08,.3,.4,.8,5.08,5.52,3,white);box(F,.3,.72,0,.43,5.1,5.5,3,white);box(F,.07,.55,.25,.75,3.9,4.5,3,oak);box(F,.07,.57,.75,.82,3.88,4.52,3,white);box(F,1.8,2.4,0,.85,3.1,3.72,3,white);
-  box(F,2.1,4,0,.012,7.3,9.3,3,sage);box(F,1.12,2.02,.1,.42,7.4,9.3,3,fab);box(F,1.12,1.36,.42,.78,7.4,9.3,3,fab);box(F,1.36,2.02,.42,.6,7.4,7.62,3,fab);box(F,1.36,2.02,.42,.6,9.08,9.3,3,fab);
-  cyl(F,3.1,8.6,0,.33,.13,wal);cyl(F,3.1,8.6,.33,.37,.42,wal);cyl(F,6,8.2,0,.71,.08,wal);cyl(F,6,8.2,.71,.75,.55,wal);
-  for(const[x,y]of[[6.85,8.2],[5.15,8.2],[6,7.35],[6,9.05]]){cyl(F,x,y,0,.42,.035,dark);cyl(F,x,y,.42,.47,.19,fab)}
-  box(F,5.3,7.42,0,.28,.75,2.45,3,wal);box(F,5.35,7.3,.28,.5,.8,2.4,3,cream);box(F,7.34,7.44,0,.95,.7,2.5,3,wal);box(F,5.34,6.5,.5,.53,.79,2.41,3,sage);box(F,6.85,7.28,.5,.62,.9,1.5,3,white);box(F,6.85,7.28,.5,.62,1.7,2.3,3,white);
+  box(F,.06,.66,0,2.2,.06,2.94,3,cream);box(F,1.195,1.215,0,2,3.06,3.95,3,[.72,.82,.82]);box(F,.35,.38,.9,2,3.1,3.13,3,steel);
+
+
+
   for(const[a,b]of[[1.15,1.7],[3.9,4.42],[4.6,5.2],[6.9,7.42]])box(F,a,b,.02,H-.02,9.6,9.63,3,cream);
   for(const[a,b,c,d,e,f]of[[1,2.5,.9,2.1,-.02,.02],[4.4,6.8,.9,2.1,-.02,.02],[1.6,4,.9,2.1,9.68,9.72],[5.3,6.8,.9,2.1,9.68,9.72]])box(F,a,b,c,d,e,f,3,[.1,.13,.2],9);
   box(F,7.48,7.52,1.3,1.7,4.9,5.9,3,[.1,.13,.2],9);
 }
-let renderer,scene,cam,ocam,meshes={},texF,texT,lightGroup,markGroup,dirty=true,mode='walk',selected=-1;
+let renderer,scene,cam,ocam,meshes={},texF,texT,lightGroup,markGroup,dirty=true,mode='walk',selected=-1,selF=-1,curTab='floor',vmat;
 function mk(a,mat){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(a.pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(a.uv,2));
   g.setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(a.pos.length),3));g.setIndex(a.idx);a.zone=new Int8Array(a.pos.length/3);
   for(let i=0;i<a.zone.length;i++){const k=a.kind[i]===1||a.kind[i]===2?0:.12;a.zone[i]=zoneOf(a.pos[i*3]+a.nor[i*3]*k,a.pos[i*3+2]+a.nor[i*3+2]*k)}
@@ -182,7 +193,12 @@ function rebuildLights(){
     else if(L.t==='stand'){add(new THREE.SphereGeometry(.13,20,14),glow,L.x,1.52,L.y);add(new THREE.CylinderGeometry(.012,.012,1.42,6),dk,L.x,.71,L.y);add(new THREE.CylinderGeometry(.14,.14,.02,20),dk,L.x,.01,L.y)}
     else add(new THREE.BoxGeometry(L.r?.03:2.2,.008,L.r?2.2:.03),glow,L.x,H-.005,L.y);
     const mm=new THREE.MeshBasicMaterial({color:i===selected?0xffffff:0xf2b35a}),m=add(L.t==='line'?new THREE.BoxGeometry(L.r?.2:2.3,.02,L.r?2.3:.2):new THREE.CylinderGeometry(L.t==='down'?.17:.24,L.t==='down'?.17:.24,.02,24),mm,L.x,H+.3,L.y,markGroup);m.userData.i=i});
+  S.furn.forEach((f,i)=>{const d=FURN[f.t],w=f.r&1?d.d:d.w,dd=f.r&1?d.w:d.d,m=new THREE.Mesh(new THREE.BoxGeometry(w,.02,dd),new THREE.MeshBasicMaterial({color:i===selF?0xffffff:0x5dcaa5,transparent:true,opacity:i===selF?.75:.5}));m.position.set(f.x,H+.2,f.y);m.userData.f=i;markGroup.add(m)});
   markGroup.visible=mode==='top';dirty=true}
+function buildFurn(){if(meshes.furn){scene.remove(meshes.furn);meshes.furn.geometry.dispose()}A.furn=Acc();
+  for(const f of S.furn)for(const p of FURN[f.t].p){if(p[0]==='b'){const a=R(p[1],p[5],f.r),b=R(p[2],p[6],f.r);box(A.furn,f.x+Math.min(a[0],b[0]),f.x+Math.max(a[0],b[0]),p[3],p[4],f.y+Math.min(a[1],b[1]),f.y+Math.max(a[1],b[1]),3,FC[p[7]],.3)}else{const c=R(p[1],p[2],f.r);cyl(A.furn,f.x+c[0],f.y+c[1],p[3],p[4],p[5],FC[p[6]])}}
+  meshes.furn=mk(A.furn,vmat)}
+function rebuildFurn(){buildFurn();rebuildLights();relight();save();ui()}
 function refresh(){rebuildLights();relight();save();ui()}
 
 /* UI */
@@ -190,14 +206,18 @@ function swatches(box,list,key){box.innerHTML='';for(const o of list){const b=do
   b.onclick=()=>{S[key]=o.id;if(key==='floor')setFloorTex();relight();save();swatches(box,list,key)};box.appendChild(b)}}
 function ui(){
   $('m-walk').setAttribute('aria-pressed',mode==='walk');$('m-top').setAttribute('aria-pressed',mode==='top');
-  $('hint').textContent=mode==='walk'?'드래그하면 시선이 돌아가고, 바닥을 누르면 그 자리로 이동합니다.':'노란 표시를 끌어서 조명을 옮기고, 눌러서 종류를 바꾸거나 삭제하세요.';
+  $('hint').textContent=mode==='walk'?'드래그하면 시선이 돌아가고, 바닥을 누르면 그 자리로 이동합니다.':'표시를 끌어서 조명(노란색)과 가구(초록색)를 옮기고, 눌러서 바꾸거나 삭제하세요.';
   $('edit').hidden=mode!=='top';$('go-edit').textContent=mode==='top'?'둘러보기로 돌아가기':'조명 위치 바꾸기';
   const L=S.lights[selected];$('selrow').hidden=!(mode==='top'&&L);if(L){$('sel').textContent=TYPES[L.t];$('rot').hidden=L.t!=='line';[...$('types').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===L.t))}
-  [...$('temps').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===S.temp))}
-function tab(k){for(const t of['floor','wall','light','req']){$('t-'+t).setAttribute('aria-selected',t===k);$('p-'+t).hidden=t!==k}if(k==='req'){$('code').value=code();$('cstat').textContent=''}resize()}
-function setMode(m){mode=m;selected=-1;meshes.ceil.visible=m==='walk';markGroup.visible=m==='top';if(m==='top')tab('light');rebuildLights();ui();resize()}
-function code(){return'HOME1:'+btoa(JSON.stringify({v:1,f:S.floor,w:S.wall,t:S.temp,b:S.bright,l:S.lights.map(L=>[L.t,+L.x.toFixed(2),+L.y.toFixed(2),L.r?1:0])}))}
+  [...$('temps').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===S.temp));
+  const Fs=S.furn[selF];$('fselrow').hidden=!(mode==='top'&&Fs);if(Fs)$('fsel').textContent=FURN[Fs.t].n;$('go-edit2').textContent=mode==='top'?'둘러보기로 돌아가기':'가구 옮기기'}
+function tab(k){curTab=k;for(const t of['floor','wall','light','furn','req']){$('t-'+t).setAttribute('aria-selected',t===k);$('p-'+t).hidden=t!==k}if(k==='req'){$('code').value=code();$('cstat').textContent=''}resize()}
+function setMode(m){mode=m;selected=-1;selF=-1;meshes.ceil.visible=m==='walk';markGroup.visible=m==='top';if(m==='top'&&curTab!=='furn')tab('light');rebuildLights();ui();resize()}
+function code(){return'HOME1:'+btoa(JSON.stringify({v:1,f:S.floor,w:S.wall,t:S.temp,b:S.bright,l:S.lights.map(L=>[L.t,+L.x.toFixed(2),+L.y.toFixed(2),L.r?1:0]),u:S.furn.map(f=>[f.t,+f.x.toFixed(2),+f.y.toFixed(2),f.r&3])}))}
 function initUI(){
+  for(const k in FURN){const b=document.createElement('button');b.textContent='+ '+FURN[k].n;b.onclick=()=>{if(mode!=='top')setMode('top');S.furn.push({t:k,x:3.3,y:7.6,r:0});selF=S.furn.length-1;selected=-1;rebuildFurn()};$('fadds').appendChild(b)}
+  $('frot').onclick=()=>{const f=S.furn[selF];if(f){f.r=(f.r+1)&3;rebuildFurn()}};$('fdel').onclick=()=>{if(S.furn[selF]){S.furn.splice(selF,1);selF=-1;rebuildFurn()}};
+  $('freset').onclick=()=>{S.furn=DEF_FURN();selF=-1;rebuildFurn()};$('fclear').onclick=()=>{S.furn=[];selF=-1;rebuildFurn()};$('go-edit2').onclick=()=>setMode(mode==='top'?'walk':'top');
   $('mkcode').onclick=()=>{const c=code();$('code').value=c;const ok=()=>{$('cstat').textContent='복사했습니다. 대화에 붙여 넣어 주세요.'},no=()=>{$('code').focus();$('code').select();$('cstat').textContent='자동 복사가 안 됐어요. 아래 코드를 직접 복사해 주세요.'};try{navigator.clipboard.writeText(c).then(ok,no)}catch(e){no()}};
   swatches($('floors'),FLOORS,'floor');swatches($('walls'),WALLS,'wall');
   for(const t of TEMPS){const b=document.createElement('button');b.textContent=t.n;b.dataset.id=t.id;b.onclick=()=>{S.temp=t.id;refresh()};$('temps').appendChild(b)}
@@ -208,7 +228,7 @@ function initUI(){
   $('rot').onclick=()=>{const L=S.lights[selected];if(L){L.r=L.r?0:1;refresh()}};
   $('reset').onclick=()=>{S.lights=DEF_LIGHTS();selected=-1;refresh()};
   $('go-edit').onclick=()=>setMode(mode==='top'?'walk':'top');$('m-walk').onclick=()=>setMode('walk');$('m-top').onclick=()=>setMode('top');
-  for(const t of['floor','wall','light','req'])$('t-'+t).onclick=()=>tab(t)}
+  for(const t of['floor','wall','light','furn','req'])$('t-'+t).onclick=()=>tab(t)}
 
 /* camera and input */
 let pos={x:1.6,z:6.5},yaw=Math.atan2(8.6-6.5,4-1.6),pitch=-.05,walk=null;
@@ -216,13 +236,14 @@ function resize(){const st=$('stage'),w=st.clientWidth,h=st.clientHeight;if(!w||
   const pad=.6,W=7.5+pad*2,Hh=9.7+pad*2,s=Math.max(W/w,Hh/h);const off=w<600?46:0,s2=Math.max(W/w,Hh/(h-off*2));ocam.left=-w*s2/2;ocam.right=w*s2/2;ocam.top=h*s2/2+off*s2;ocam.bottom=-h*s2/2+off*s2;ocam.updateProjectionMatrix();dirty=true}
 function input(){const st=$('stage'),ray=new THREE.Raycaster(),v=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();let d=null;
   const ndc=e=>{const r=st.getBoundingClientRect();v.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1)};
-  st.addEventListener('pointerdown',e=>{if(e.target.closest('#head'))return;st.setPointerCapture(e.pointerId);ndc(e);d={x:e.clientX,y:e.clientY,yaw,pitch,moved:false,li:-1};
-    if(mode==='top'){ray.setFromCamera(v,ocam);const h=ray.intersectObjects(markGroup.children)[0];if(h){d.li=h.object.userData.i;selected=d.li;rebuildLights();ui()}}});
+  st.addEventListener('pointerdown',e=>{if(e.target.closest('#head'))return;st.setPointerCapture(e.pointerId);ndc(e);d={x:e.clientX,y:e.clientY,yaw,pitch,moved:false,li:-1,fi:-1};
+    if(mode==='top'){ray.setFromCamera(v,ocam);const h=ray.intersectObjects(markGroup.children)[0];if(h){if(h.object.userData.f!==undefined){d.fi=h.object.userData.f;selF=d.fi;selected=-1}else{d.li=h.object.userData.i;selected=d.li;selF=-1}rebuildLights();ui()}}});
   st.addEventListener('pointermove',e=>{if(!d)return;if(Math.hypot(e.clientX-d.x,e.clientY-d.y)>6)d.moved=true;
     if(mode==='walk'){const k=cam.fov/st.clientHeight*Math.PI/180;yaw=d.yaw-(e.clientX-d.x)*k;pitch=Math.max(-1.2,Math.min(1.2,d.pitch+(e.clientY-d.y)*k));dirty=true}
-    else if(d.li>=0&&d.moved){ndc(e);ray.setFromCamera(v,ocam);if(ray.ray.intersectPlane(plane,hit)){const L=S.lights[d.li];L.x=Math.max(.15,Math.min(7.35,hit.x));L.y=Math.max(.15,Math.min(9.55,hit.z));rebuildLights();relight()}}});
-  const up=e=>{if(!d)return;if(mode==='walk'&&!d.moved){ndc(e);ray.setFromCamera(v,cam);const h=ray.intersectObjects([meshes.floor,meshes.tile,meshes.wall,meshes.fix])[0];if(h&&(h.object===meshes.floor||h.object===meshes.tile)&&h.point.x>.3&&h.point.x<7.2&&h.point.z>.3&&h.point.z<9.4)walk={x0:pos.x,z0:pos.z,x1:h.point.x,z1:h.point.z,t:0}}
-    else if(mode==='top'){if(d.li<0&&!d.moved){selected=-1;rebuildLights();ui()}else save()}d=null};
+    else if(d.li>=0&&d.moved){ndc(e);ray.setFromCamera(v,ocam);if(ray.ray.intersectPlane(plane,hit)){const L=S.lights[d.li];L.x=Math.max(.15,Math.min(7.35,hit.x));L.y=Math.max(.15,Math.min(9.55,hit.z));rebuildLights();relight()}}
+    else if(d.fi>=0&&d.moved){ndc(e);ray.setFromCamera(v,ocam);if(ray.ray.intersectPlane(plane,hit)){const F=S.furn[d.fi];F.x=Math.max(.2,Math.min(7.3,hit.x));F.y=Math.max(.2,Math.min(9.5,hit.z));buildFurn();rebuildLights();relight()}}});
+  const up=e=>{if(!d)return;if(mode==='walk'&&!d.moved){ndc(e);ray.setFromCamera(v,cam);const h=ray.intersectObjects([meshes.floor,meshes.tile,meshes.wall,meshes.fix,meshes.furn])[0];if(h&&(h.object===meshes.floor||h.object===meshes.tile)&&h.point.x>.3&&h.point.x<7.2&&h.point.z>.3&&h.point.z<9.4)walk={x0:pos.x,z0:pos.z,x1:h.point.x,z1:h.point.z,t:0}}
+    else if(mode==='top'){if(d.li<0&&d.fi<0&&!d.moved){selected=-1;selF=-1;rebuildLights();ui()}else save()}d=null};
   st.addEventListener('pointerup',up);st.addEventListener('pointercancel',()=>{d=null});
   addEventListener('keydown',e=>{if(mode!=='walk'||e.target.tagName==='INPUT')return;const s=.12;if(e.key==='ArrowLeft')yaw-=s;else if(e.key==='ArrowRight')yaw+=s;else if(e.key==='ArrowUp')pitch=Math.min(1.2,pitch+s);else if(e.key==='ArrowDown')pitch=Math.max(-1.2,pitch-s);else return;e.preventDefault();dirty=true})}
 function tick(){
@@ -236,7 +257,7 @@ function boot(){
   build();const vm=o=>new THREE.MeshBasicMaterial(Object.assign({vertexColors:true,side:THREE.DoubleSide},o));
   texT=canvasTex(g=>{g.fillStyle='#8f8a80';g.fillRect(0,0,512,512);g.fillStyle='#d9d2c4';for(let i=0;i<2;i++)for(let j=0;j<2;j++)g.fillRect(i*256+2,j*256+2,252,252)},1.2);
   meshes.wall=mk(A.wall,vm());meshes.floor=mk(A.floor,vm());meshes.tile=mk(A.tile,vm({map:texT}));meshes.ceil=mk(A.ceil,vm());meshes.fix=mk(A.fix,vm());
-  lightGroup=new THREE.Group();markGroup=new THREE.Group();scene.add(lightGroup,markGroup);
+  vmat=vm();buildFurn();lightGroup=new THREE.Group();markGroup=new THREE.Group();scene.add(lightGroup,markGroup);
   setFloorTex();initUI();input();rebuildLights();relight();ui();resize();addEventListener('resize',resize);requestAnimationFrame(tick)}
 boot();
 </script>
